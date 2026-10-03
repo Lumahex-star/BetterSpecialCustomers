@@ -478,6 +478,9 @@
 		<Reference Include="0Harmony">
 			<HintPath>$(S1Dir)\MelonLoader\net35\0Harmony.dll</HintPath>
 		</Reference>
+		<Referece Include="S1API_Forked">
+			<HintPath>D:\Modding Things\Schedule I - Mono\Mods\S1API.Mono.Melonloader</HintPath>
+		</Referece>
 
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)' == 'IL2CPP'">
@@ -922,6 +925,9 @@
 		<Reference Include="Il2CppInterop.Common">
 			<HintPath>$(S1Dir)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
 		</Reference>
+		<Referece Include="S1API_Forked">
+			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Schedule I\Mods\S1API.Il2Cpp.Melonloader</HintPath>
+		</Referece>
 
 	</ItemGroup>
 
