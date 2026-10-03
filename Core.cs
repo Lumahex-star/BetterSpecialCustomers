@@ -1,6 +1,7 @@
 ﻿using MelonLoader;
 using UnityEngine;
 using MelonLoader.Utils;
+using HarmonyLib;
 
 // Conditional compilation example for IL2CPP and MONO
 // #if <Build config> is used to check the build configuration
@@ -12,16 +13,18 @@ using ScheduleOne.NPCs; // Mono using directive
 // Other build configs
 #endif
 
-[assembly: MelonInfo(typeof(MONO_IL2CPP_Template.Core), "BetterSpecialCustomers", "1.0.0", "Lumahex", null)] 
+[assembly: MelonInfo(typeof(BetterSpecialCustomers.Core), "BetterSpecialCustomers", "1.0.0", "Lumahex", null)] 
 [assembly: MelonGame("TVGS", "Schedule I")]
 
-namespace MONO_IL2CPP_Template
+namespace BetterSpecialCustomers
 {
     public class Core : MelonMod
     {
         public override void OnInitializeMelon()
         {
             LoggerInstance.Msg("Initialized.");
+            HarmonyInstance.PatchAll();
         }
+
     }
 }
