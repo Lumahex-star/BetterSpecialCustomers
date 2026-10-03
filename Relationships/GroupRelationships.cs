@@ -43,8 +43,8 @@ public static class GroupRelationships
     // (For comparison, a vanilla customer deal changes relationship by -0.5 to +0.5.)
     public const float GainPerVisit = 0.5f;
 
-    // The gain is only given once the player has sold at least this fraction of the group's buy limit
-    // (the same "x / limit" progress the handover screen shows).
+    // The gain is only given once the player has sold, over the whole visit, at least this fraction of the
+    // group's buy limit (the limit shown on the handover screen, which refills each morning).
     public const float MinFractionOfLimitForGain = 0.75f;
 
     private class State
@@ -53,6 +53,7 @@ public static class GroupRelationships
         public float Applied = DefaultValue;
         public bool InVisit;          // the group is in town right now
         public bool GainedThisVisit;  // the one gain for this visit has already been given
+        public int SoldThisVisit;     // units sold to the group since it arrived (all days of the visit)
     }
 
     private static readonly Dictionary<string, State> States = new Dictionary<string, State>();
@@ -101,6 +102,7 @@ public static class GroupRelationships
 
         state.InVisit = true;
         state.GainedThisVisit = false;
+        state.SoldThisVisit = 0;
         state.Applied = state.Current;
         Melon<Core>.Logger.Msg(
             $"[{groupId}] new visit. Relationship {state.Applied:0.00} ({GetCategory(state.Applied)}) now applies: buy multiplier x{GetMultiplier(groupId):0.00}");
@@ -113,20 +115,22 @@ public static class GroupRelationships
     }
 
     /// <summary>
-    /// The player completed a sale to the group. fractionOfLimitSold is how much of the group's current buy
-    /// limit has been sold so far (0 to 1), counting this sale. The gain is given once per visit, as soon as
-    /// that reaches MinFractionOfLimitForGain.
+    /// The player completed a sale of unitsSold to the group, whose buy limit is limit. Sales are added up
+    /// over the whole visit (the limit refills each morning, but this total does not), and the gain is given
+    /// once, as soon as the total reaches MinFractionOfLimitForGain of the limit.
     /// </summary>
-    public static void RegisterSale(string groupId, float fractionOfLimitSold)
+    public static void RegisterSale(string groupId, int unitsSold, int limit)
     {
         State state = GetState(groupId);
-        if (state.GainedThisVisit)
+        if (state.GainedThisVisit || limit <= 0)
             return;
 
-        if (fractionOfLimitSold < MinFractionOfLimitForGain)
+        state.SoldThisVisit += unitsSold;
+        float fraction = state.SoldThisVisit / (float)limit;
+        if (fraction < MinFractionOfLimitForGain)
         {
             Melon<Core>.Logger.Msg(
-                $"[{groupId}] sold {fractionOfLimitSold:P0} of their limit; need {MinFractionOfLimitForGain:P0} for a relationship gain this visit");
+                $"[{groupId}] sold {state.SoldThisVisit} so far this visit ({fraction:P0} of their limit of {limit}); need {MinFractionOfLimitForGain:P0} for a relationship gain");
             return;
         }
 
@@ -141,14 +145,14 @@ public static class GroupRelationships
     // We store the state INSIDE the game's own SpecialCustomers.json as an extra property:
     //
     //   "BetterSpecialCustomers_Relationships": [
-    //       { "id": "hippies", "current": 3, "applied": 2.5, "inVisit": 1, "gained": 1 }, ...
+    //       { "id": "hippies", "current": 3, "applied": 2.5, "inVisit": 1, "gained": 1, "sold": 120 }, ...
     //   ]
     //
     // The game reads that file with JsonUtility, which ignores properties it doesn't know, so the save
     // stays valid if the mod is removed. Doing it this way (instead of our own file) matters because the
     // game deletes unknown files from the save folder every time it saves. See RelationshipPersistencePatches.cs.
     // The tiny hand-written reader/writer avoids JsonUtility, which can't serialize mod classes on IL2CPP.
-    // InVisit and Applied are saved too, otherwise loading a save in the middle of a visit would
+    // InVisit, Applied and the sold total are saved too, otherwise loading a save in the middle of a visit would
     // start a "new" visit and apply the relationship early.
 
     public const string JsonKey = "BetterSpecialCustomers_Relationships";
@@ -185,9 +189,9 @@ public static class GroupRelationships
         {
             State s = pair.Value;
             entries.Add(string.Format(CultureInfo.InvariantCulture,
-                "{{ \"id\": \"{0}\", \"current\": {1}, \"applied\": {2}, \"inVisit\": {3}, \"gained\": {4} }}",
+                "{{ \"id\": \"{0}\", \"current\": {1}, \"applied\": {2}, \"inVisit\": {3}, \"gained\": {4}, \"sold\": {5} }}",
                 pair.Key, s.Current.ToString("R", CultureInfo.InvariantCulture), s.Applied.ToString("R", CultureInfo.InvariantCulture),
-                s.InVisit ? 1 : 0, s.GainedThisVisit ? 1 : 0));
+                s.InVisit ? 1 : 0, s.GainedThisVisit ? 1 : 0, s.SoldThisVisit));
         }
         return $"\"{JsonKey}\": [ {string.Join(", ", entries)} ]";
     }
@@ -214,6 +218,7 @@ public static class GroupRelationships
             state.Applied = ReadFloat(entry, "applied", state.Current);
             state.InVisit = ReadField(entry, "inVisit") == "1";
             state.GainedThisVisit = ReadField(entry, "gained") == "1";
+            state.SoldThisVisit = int.TryParse(ReadField(entry, "sold"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int sold) ? sold : 0;
         }
     }
 }
