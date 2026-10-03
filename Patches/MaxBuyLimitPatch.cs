@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 #if MONO
@@ -12,28 +13,33 @@ using Il2CppScheduleOne.SpecialCustomers;
 
 namespace BetterSpecialCustomers.Patches;
 
-// SpecialCustomerData.GetBuyQuantityForPlayerRank is a pure getter that the game calls from several
-// places (SpecialCustomerManager when a group arrives, SpecialCustomerManager on every daily phase
-// update while the group is here, and the arrival popup UI). Seeing the postfix run more than once
-// per arrival is expected - it does NOT mean the patch is applied twice. The postfix is stateless,
-// so extra calls are harmless.
+// The game computes: min(baseBuyQuantity + additionalPerRank * rank, _maxBuyQuantity), with the cap at 120.
+// Raising the cap itself (instead of multiplying the result) keeps the per-rank scaling for lower ranks
+// and gives exactly NewMaxBuyQuantity at the top. The method is called from several places (arrival,
+// daily update, arrival popup), so it runs more than once per arrival - that is normal.
 [HarmonyPatch(typeof(SpecialCustomerData), nameof(SpecialCustomerData.GetBuyQuantityForPlayerRank))]
 public class MaxBuyPatch
 {
-    public const int Multiplier = 2;
+    public const int NewMaxBuyQuantity = 200;
 
-    // Flip to true to log every call with its caller, to tell "called twice" from "patched twice".
+    // Flip to true to log every call with its caller.
     private const bool DebugLogging = true;
 
-    public static void Postfix(SpecialCustomerData __instance, ERank rank, ref int __result)
-    {
-        int original = __result;
-        __result = original * Multiplier;
+#if MONO
+    private static readonly FieldInfo MaxField = AccessTools.Field(typeof(SpecialCustomerData), "_maxBuyQuantity");
+#elif IL2CPP
+    private static readonly PropertyInfo MaxField = AccessTools.Property(typeof(SpecialCustomerData), "_maxBuyQuantity");
+#endif
 
-        if (DebugLogging)
-        {
-            string caller = new StackTrace().GetFrame(2)?.GetMethod()?.DeclaringType?.Name ?? "?";
-            Melon<Core>.Logger.Msg($"[{__instance.GroupId}] rank {rank}: {original} -> {__result} (caller: {caller})");
-        }
+    public static void Prefix(SpecialCustomerData __instance)
+    {
+        MaxField.SetValue(__instance, NewMaxBuyQuantity);
+    }
+
+    public static void Postfix(SpecialCustomerData __instance, ERank rank, int __result)
+    {
+        if (!DebugLogging) return;
+        string caller = new StackTrace().GetFrame(2)?.GetMethod()?.DeclaringType?.Name ?? "?";
+        Melon<Core>.Logger.Msg($"[{__instance.GroupId}] rank {rank}: {__result} (caller: {caller})");
     }
 }
