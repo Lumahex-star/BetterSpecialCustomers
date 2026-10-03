@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="IL2CPP" />
+    <BuildType Name="MONO" />
+  </Configurations>
+  <Project Path="BetterSpecialCustomers.csproj" />
+</Solution>
