@@ -43,6 +43,10 @@ public static class GroupRelationships
     // (For comparison, a vanilla customer deal changes relationship by -0.5 to +0.5.)
     public const float GainPerVisit = 0.5f;
 
+    // The gain is only given once the player has sold at least this fraction of the group's buy limit
+    // (the same "x / limit" progress the handover screen shows).
+    public const float MinFractionOfLimitForGain = 0.75f;
+
     private class State
     {
         public float Current = DefaultValue;
@@ -108,12 +112,23 @@ public static class GroupRelationships
         GetState(groupId).InVisit = false;
     }
 
-    /// <summary>The player completed a sale to the group. Only the first sale of each visit counts.</summary>
-    public static void RegisterSale(string groupId)
+    /// <summary>
+    /// The player completed a sale to the group. fractionOfLimitSold is how much of the group's current buy
+    /// limit has been sold so far (0 to 1), counting this sale. The gain is given once per visit, as soon as
+    /// that reaches MinFractionOfLimitForGain.
+    /// </summary>
+    public static void RegisterSale(string groupId, float fractionOfLimitSold)
     {
         State state = GetState(groupId);
         if (state.GainedThisVisit)
             return;
+
+        if (fractionOfLimitSold < MinFractionOfLimitForGain)
+        {
+            Melon<Core>.Logger.Msg(
+                $"[{groupId}] sold {fractionOfLimitSold:P0} of their limit; need {MinFractionOfLimitForGain:P0} for a relationship gain this visit");
+            return;
+        }
 
         state.GainedThisVisit = true;
         float before = state.Current;
