@@ -34,10 +34,13 @@ public class MaxBuyPatch
         return false; // skip the original
     }
 
+    // Priority.Last makes this postfix run after the other postfixes (e.g. the relationship multiplier),
+    // so the log shows the FINAL quantity the game receives.
+    [HarmonyPriority(Priority.Last)]
     public static void Postfix(SpecialCustomerData __instance, ERank rank, int __result)
     {
         if (!DebugLogging) return;
         string caller = new StackTrace().GetFrame(2)?.GetMethod()?.DeclaringType?.Name ?? "?";
-        Melon<Core>.Logger.Msg($"[{__instance.GroupId}] rank {rank}: {__result} (caller: {caller})");
+        Melon<Core>.Logger.Msg($"[{__instance.GroupId}] rank {rank}: {__result} (relationship x{Relationships.GroupRelationships.GetMultiplier(__instance.GroupId):0.00}) (caller: {caller})");
     }
 }

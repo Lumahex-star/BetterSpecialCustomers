@@ -939,6 +939,10 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="Patches\MaxBuyLimitPatch.cs" />
+		<Compile Include="Patches\RelationshipBuyQuantityPatch.cs" />
+		<Compile Include="Patches\RelationshipGainPatch.cs" />
+		<Compile Include="Patches\RelationshipPersistencePatches.cs" />
+		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
 		<Folder Include="Libs\" />
 		<Folder Include="Assets\" />
