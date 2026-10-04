@@ -1,4 +1,7 @@
+using System.Reflection;
 using HarmonyLib;
+using MelonLoader;
+using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 #if MONO
 using ScheduleOne.SpecialCustomers;
@@ -13,25 +16,42 @@ namespace BetterSpecialCustomers.Patches;
 // Both target PRIVATE methods of SpecialCustomerManager, so they name the method with a string
 // (nameof() can't see private members).
 
-// SpecialCustomerManager.RunArrivalPhase() is the game's "group arrives in town" code. It works out the
-// group's buy quantity, so our prefix runs BEFORE it - the new relationship must already be applied by then.
-//
-// "____currentData" is a Harmony feature: a parameter named three underscores + the field's exact name
-// gives the patch access to that PRIVATE field of the patched object. The field here is called
-// "_currentData" (it starts with its own underscore), so the parameter has FOUR underscores in total.
-// It holds the GroupId of the group that is arriving.
+// To find out WHICH group is arriving we read the manager's private "_currentData" (it holds the GroupId).
+// Earlier this used Harmony's "____currentData" parameter injection, which only works when _currentData is a
+// real FIELD. In the IL2CPP build the game's classes are wrapper classes where a private field may be exposed
+// as a PROPERTY (or not at all), so we look for either a field or a property by name, using reflection.
 //
 // Caution: the game also calls RunArrivalPhase when a save is loaded in the middle of a visit. That is why
 // GroupRelationships.BeginVisit remembers (and saves) whether the group is already in town.
 [HarmonyPatch(typeof(SpecialCustomerManager), "RunArrivalPhase")]
 public class RelationshipArrivalPatch
 {
-    public static void Prefix(SpecialCustomerSaveData ____currentData)
+    private static readonly FieldInfo CurrentDataField = AccessTools.Field(typeof(SpecialCustomerManager), "_currentData");
+    private static readonly PropertyInfo CurrentDataProperty = AccessTools.Property(typeof(SpecialCustomerManager), "_currentData");
+    private static bool _reportedMissing;
+
+    private static string GetArrivingGroupId(SpecialCustomerManager manager)
     {
-        if (____currentData == null || string.IsNullOrEmpty(____currentData.GroupId))
+        object data = CurrentDataField != null
+            ? CurrentDataField.GetValue(manager)
+            : CurrentDataProperty?.GetValue(manager);
+
+        if (data == null && CurrentDataField == null && CurrentDataProperty == null && !_reportedMissing)
+        {
+            _reportedMissing = true;
+            Melon<Core>.Logger.Error("RelationshipArrivalPatch: can't find SpecialCustomerManager._currentData as a field or property; visits will NOT be tracked. See the [diag] Probe lines.");
+        }
+        return (data as SpecialCustomerSaveData)?.GroupId;
+    }
+
+    public static void Prefix(SpecialCustomerManager __instance)
+    {
+        PatchDiagnostics.Hit("RelationshipArrivalPatch (group arriving)");
+        string groupId = GetArrivingGroupId(__instance);
+        if (string.IsNullOrEmpty(groupId))
             return;
 
-        GroupRelationships.BeginVisit(____currentData.GroupId);
+        GroupRelationships.BeginVisit(groupId);
     }
 }
 
@@ -44,6 +64,7 @@ public class RelationshipDeparturePatch
 {
     public static void Prefix(SpecialCustomerManager __instance)
     {
+        PatchDiagnostics.Hit("RelationshipDeparturePatch (group leaving)");
         SpecialCustomerData group = __instance.CurrentGroupData;
         if (group == null)
             return;
