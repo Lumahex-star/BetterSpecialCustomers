@@ -952,6 +952,7 @@
 		<Compile Include="Patches\RelationshipLossPatch.cs" />
 		<Compile Include="Patches\RelationshipPersistencePatches.cs" />
 		<Compile Include="Patches\RelationshipVisitPatches.cs" />
+		<Compile Include="Quests\BikersQuest.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
 		<Folder Include="Libs\" />
