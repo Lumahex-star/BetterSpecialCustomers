@@ -86,16 +86,24 @@ public static class PatchDiagnostics
         ProbeMethod(typeof(SpecialCustomerManager), "RemoveCustomerGroup");
         ProbeMethod(typeof(SpecialCustomerLoader), "Load");
 
-        // The arrival patch needs the manager's private "_currentData". On Mono that is a field; in the
-        // IL2CPP wrapper it may be a property, or have a different name.
+        // These private members are read/written by our code. On Mono they are fields; in the IL2CPP wrappers
+        // they may be properties, or have a different name.
+        ProbeMembers(typeof(SpecialCustomerManager), "currentData");
+        ProbeMembers(typeof(SpecialCustomerData), "baseBuyQuantity");
+        ProbeMembers(typeof(SpecialCustomerData), "additionalBuyQuantityPerRank");
+        ProbeMembers(typeof(SpecialCustomerData), "maxBuyQuantity");
+    }
+
+    private static void ProbeMembers(Type type, string namePart)
+    {
         const BindingFlags all = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-        MemberInfo[] matches = typeof(SpecialCustomerManager).GetMembers(all)
-            .Where(m => m.Name.IndexOf("currentData", StringComparison.OrdinalIgnoreCase) >= 0)
+        MemberInfo[] matches = type.GetMembers(all)
+            .Where(m => m.Name.IndexOf(namePart, StringComparison.OrdinalIgnoreCase) >= 0)
             .ToArray();
         if (matches.Length == 0)
-            Melon<Core>.Logger.Warning("[diag] Probe: SpecialCustomerManager has NO member containing 'currentData'.");
+            Melon<Core>.Logger.Warning($"[diag] Probe: {type.Name} has NO member containing '{namePart}'.");
         foreach (MemberInfo m in matches)
-            Melon<Core>.Logger.Msg($"[diag] Probe: SpecialCustomerManager.{m.Name} is a {m.MemberType}");
+            Melon<Core>.Logger.Msg($"[diag] Probe: {type.Name}.{m.Name} is a {m.MemberType}");
     }
 
     private static void ProbeMethod(Type type, string name)

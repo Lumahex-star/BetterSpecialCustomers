@@ -52,6 +52,10 @@ public class RelationshipArrivalPatch
             return;
 
         GroupRelationships.BeginVisit(groupId);
+
+        // IL2CPP only: the buy limit patches on the method itself aren't reached there (see BuyLimitFieldSync).
+        // The relationship was just updated above, so bring the game's own numbers in line with it.
+        BuyLimitFieldSync.Apply(__instance, groupId);
     }
 }
 
