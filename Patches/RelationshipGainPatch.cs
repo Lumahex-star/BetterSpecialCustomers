@@ -3,10 +3,12 @@ using BetterSpecialCustomers.Relationships;
 #if MONO
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Levelling;
+using ScheduleOne.NPCs;
 using ScheduleOne.SpecialCustomers;
 #elif IL2CPP
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.SpecialCustomers;
 #endif
 
