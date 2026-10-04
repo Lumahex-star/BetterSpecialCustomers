@@ -5,7 +5,7 @@ namespace MONO_IL2CPP_Template.TemplateUtils
 {
     public static class AssetBundleUtils
     {
-        static Core mod = MelonAssembly.FindMelonInstance<Core>();
+        static BetterSpecialCustomers.Core mod = MelonAssembly.FindMelonInstance<BetterSpecialCustomers.Core>();
         static MelonAssembly melonAssembly = mod.MelonAssembly;
 
         public static
@@ -18,7 +18,7 @@ namespace MONO_IL2CPP_Template.TemplateUtils
         {
             try
             {
-                string streamPath = $"{typeof(Core).Namespace}.Assets.{bundleFileName}";
+                string streamPath = $"{typeof(BetterSpecialCustomers.Core).Namespace}.Assets.{bundleFileName}";
                 Stream bundleStream = melonAssembly.Assembly.GetManifestResourceStream($"{streamPath}");
                 if (bundleStream == null)
                 {
