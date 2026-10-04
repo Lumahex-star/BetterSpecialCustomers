@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using HarmonyLib;
+using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 #if MONO
@@ -18,6 +19,7 @@ public class RelationshipSavePatch
 {
     public static void Postfix(ref string __result)
     {
+        PatchDiagnostics.Hit("RelationshipSavePatch (writing save)");
         try
         {
             int end = __result.LastIndexOf('}');
@@ -43,6 +45,7 @@ public class RelationshipLoadPatch
 {
     public static void Prefix(string mainPath)
     {
+        PatchDiagnostics.Hit("RelationshipLoadPatch (reading save)");
         try
         {
             string file = mainPath + ".json";

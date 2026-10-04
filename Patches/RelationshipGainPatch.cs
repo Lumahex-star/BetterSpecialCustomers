@@ -1,4 +1,5 @@
 using HarmonyLib;
+using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 #if MONO
 using ScheduleOne.DevUtilities;
@@ -27,6 +28,7 @@ public class RelationshipGainPatch
 {
     public static void Postfix(SpecialCustomerManager __instance, SpecialCustomerDealReceipt dealRecipe)
     {
+        PatchDiagnostics.Hit("RelationshipGainPatch (sale completed)");
         SpecialCustomerData group = __instance.CurrentGroupData;
         SpecialCustomerLeader leader = dealRecipe?.Leader;
         if (group == null || leader == null || dealRecipe.Items == null)

@@ -140,6 +140,13 @@ public static class GroupRelationships
         Melon<Core>.Logger.Msg(
             $"[{groupId}] relationship {before:0.00} -> {state.Current:0.00} ({GetCategory(state.Current)}). It applies from their next visit; this visit stays at x{GetMultiplier(groupId):0.00}");
     }
+    public static void Penalize(string groupId, float amount, string reason)
+    {
+        State state = GetState(groupId);
+        float before = state.Current;
+        state.Current = Clamp(before - amount);
+        Melon<Core>.Logger.Msg($"[{groupId}] relationship {before:0.00} -> {state.Current:0.00} ({reason})");
+    }
 
     // ---- Persistence -------------------------------------------------------------------------------
     // We store the state INSIDE the game's own SpecialCustomers.json as an extra property:
