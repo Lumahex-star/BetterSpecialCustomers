@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using HarmonyLib;
+using BetterSpecialCustomers.Diagnostics;
 using MelonLoader;
 #if MONO
 using ScheduleOne.Levelling;
@@ -27,6 +28,7 @@ public class MaxBuyPatch
 
     public static bool Prefix(SpecialCustomerData __instance, ERank rank, ref int __result)
     {
+        PatchDiagnostics.Hit("MaxBuyPatch (rank-based buy limit)");
         int baseQuantity = __instance.BaseBuyQuantity;
         int topRank = (int)ERank.Kingpin;
         int clampedRank = Math.Max(0, Math.Min((int)rank, topRank));

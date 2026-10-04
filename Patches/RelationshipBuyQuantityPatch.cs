@@ -1,5 +1,6 @@
 using System;
 using HarmonyLib;
+using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 #if MONO
 using ScheduleOne.SpecialCustomers;
@@ -19,6 +20,7 @@ public class RelationshipBuyQuantityPatch
 {
     public static void Postfix(SpecialCustomerData __instance, ref int __result)
     {
+        PatchDiagnostics.Hit("RelationshipBuyQuantityPatch (relationship multiplier)");
         float multiplier = GroupRelationships.GetMultiplier(__instance.GroupId);
         __result = Math.Max(1, (int)Math.Round(__result * multiplier));
     }

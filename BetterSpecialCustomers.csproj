@@ -944,6 +944,7 @@
 
 	<ItemGroup>
 		<Compile Include="Core.cs" />
+		<Compile Include="Diagnostics\PatchDiagnostics.cs" />
 		<Compile Include="Patches\MaxBuyLimitPatch.cs" />
 		<Compile Include="Patches\RelationshipBuyQuantityPatch.cs" />
 		<Compile Include="Patches\RelationshipGainPatch.cs" />
