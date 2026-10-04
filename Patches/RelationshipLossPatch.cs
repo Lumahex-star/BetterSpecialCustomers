@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using UnityEngine;
@@ -12,6 +13,7 @@ using ScheduleOne.PlayerScripts;
 using ScheduleOne.SpecialCustomers;
 #elif IL2CPP
 using Il2CppFishNet;
+using Il2CppInterop.Runtime;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.NPCs.Responses;
@@ -35,15 +37,37 @@ namespace BetterSpecialCustomers.Patches
 
         public static void Postfix(SpecialCustomer __instance)
         {
+            PatchDiagnostics.Hit("RelationshipLossPatch (subscribing to NPC reactions)");
             if (!Subscribed.Add(__instance.GetInstanceID())) return;
 
             NPCResponses r = __instance.Responses;
+#if MONO
             r.OnNonLethallyAttackedByPlayer += OnPunched;
             r.OnRepeatedlyNonLethallyAttackedByPlayer += OnPunched;
             r.OnLethallyAttackedByPlayer += OnKilledSomeone;
             r.OnAimedAtByPlayer += OnAimedAt;
             r.OnPickpocketFailed += OnPickpocketFailed;
+#elif IL2CPP
+            r.OnNonLethallyAttackedByPlayer = AddHandler(r.OnNonLethallyAttackedByPlayer, OnPunched);
+            r.OnRepeatedlyNonLethallyAttackedByPlayer = AddHandler(r.OnRepeatedlyNonLethallyAttackedByPlayer, OnPunched);
+            r.OnLethallyAttackedByPlayer = AddHandler(r.OnLethallyAttackedByPlayer, OnKilledSomeone);
+            r.OnAimedAtByPlayer = AddHandler(r.OnAimedAtByPlayer, OnAimedAt);
+            r.OnPickpocketFailed = AddHandler(r.OnPickpocketFailed, OnPickpocketFailed);
+#endif
         }
+
+#if IL2CPP
+        // On IL2CPP the game's events are Il2CppSystem.Action<Player>, a different type from the normal
+        // C# Action<Player>, so a plain "+=" with our method doesn't compile. Instead:
+        //   1. ConvertDelegate wraps our normal C# method in the game's delegate type.
+        //   2. Combine adds it to whatever handlers the event already has (this is the same thing the game
+        //      itself does in SpecialCustomer.SetGroupMates), and Cast gives the result back its exact type.
+        private static Il2CppSystem.Action<Player> AddHandler(Il2CppSystem.Action<Player> existing, Action<Player> handler)
+        {
+            var converted = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<Player>>(handler);
+            return Il2CppSystem.Delegate.Combine(existing, converted).Cast<Il2CppSystem.Action<Player>>();
+        }
+#endif
 
         private static void OnPunched(Player attacker)
         {
