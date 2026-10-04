@@ -23,7 +23,7 @@ namespace BetterSpecialCustomers.Diagnostics;
 /// </summary>
 public static class PatchDiagnostics
 {
-    public static readonly bool Enabled = true;
+    public static readonly bool Enabled = false;
 
     private static readonly HashSet<string> Seen = new HashSet<string>();
 
