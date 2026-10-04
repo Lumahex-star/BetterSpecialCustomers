@@ -52,6 +52,9 @@
 		<Reference Include="Assembly-CSharp">
 			<HintPath>$(S1Dir)\Schedule I_Data\Managed\Assembly-CSharp.dll</HintPath>
 		</Reference>
+		<Reference Include="ScheduleOne.Core">
+			<HintPath>$(S1Dir)\Schedule I_Data\Managed\ScheduleOne.Core.dll</HintPath>
+		</Reference>
 		<Reference Include="AstarPathfindingProject">
 			<HintPath>$(S1Dir)\Schedule I_Data\Managed\AstarPathfindingProject.dll</HintPath>
 		</Reference>
@@ -492,6 +495,9 @@
 		</Reference>
 		<Reference Include="Assembly-CSharp">
 			<HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2CppScheduleOne.Core">
+			<HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Il2CppScheduleOne.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppAeLa.EasyFeedback">
 			<HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Il2CppAeLa.EasyFeedback.dll</HintPath>
@@ -939,6 +945,11 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="Patches\MaxBuyLimitPatch.cs" />
+		<Compile Include="Patches\RelationshipBuyQuantityPatch.cs" />
+		<Compile Include="Patches\RelationshipGainPatch.cs" />
+		<Compile Include="Patches\RelationshipPersistencePatches.cs" />
+		<Compile Include="Patches\RelationshipVisitPatches.cs" />
+		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
 		<Folder Include="Libs\" />
 		<Folder Include="Assets\" />
