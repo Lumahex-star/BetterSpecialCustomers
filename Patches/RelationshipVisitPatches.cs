@@ -16,21 +16,22 @@ namespace BetterSpecialCustomers.Patches;
 // SpecialCustomerManager.RunArrivalPhase() is the game's "group arrives in town" code. It works out the
 // group's buy quantity, so our prefix runs BEFORE it - the new relationship must already be applied by then.
 //
-// "___currentData" is a Harmony feature: a parameter named three underscores + a field name gives the patch
-// access to that PRIVATE field of the patched object. Here it is the manager's _currentData, which holds
-// the GroupId of the group that is arriving.
+// "____currentData" is a Harmony feature: a parameter named three underscores + the field's exact name
+// gives the patch access to that PRIVATE field of the patched object. The field here is called
+// "_currentData" (it starts with its own underscore), so the parameter has FOUR underscores in total.
+// It holds the GroupId of the group that is arriving.
 //
 // Caution: the game also calls RunArrivalPhase when a save is loaded in the middle of a visit. That is why
 // GroupRelationships.BeginVisit remembers (and saves) whether the group is already in town.
 [HarmonyPatch(typeof(SpecialCustomerManager), "RunArrivalPhase")]
 public class RelationshipArrivalPatch
 {
-    public static void Prefix(SpecialCustomerSaveData ___currentData)
+    public static void Prefix(SpecialCustomerSaveData ____currentData)
     {
-        if (___currentData == null || string.IsNullOrEmpty(___currentData.GroupId))
+        if (____currentData == null || string.IsNullOrEmpty(____currentData.GroupId))
             return;
 
-        GroupRelationships.BeginVisit(___currentData.GroupId);
+        GroupRelationships.BeginVisit(____currentData.GroupId);
     }
 }
 
