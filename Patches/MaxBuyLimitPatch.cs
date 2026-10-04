@@ -23,7 +23,7 @@ public class MaxBuyPatch
     public const int NewMaxBuyQuantity = 200;
 
     // Flip to true to log every call with its caller.
-    private const bool DebugLogging = true;
+    private const bool DebugLogging = false;
 
     public static bool Prefix(SpecialCustomerData __instance, ERank rank, ref int __result)
     {
