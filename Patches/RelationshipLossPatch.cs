@@ -62,7 +62,7 @@ namespace BetterSpecialCustomers.Patches
             if (group == null) return;
 
             _lastPenaltyTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 1.f, "customer killed");
+            GroupRelationships.Penalize(group.GroupId, 1f, "customer killed");
         }
         private static void OnAimedAt(Player attacker)
         {
