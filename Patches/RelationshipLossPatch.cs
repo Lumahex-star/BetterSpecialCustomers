@@ -26,8 +26,12 @@ namespace BetterSpecialCustomers.Patches
     {
         private static readonly HashSet<int> Subscribed = new HashSet<int>();
 
-        // Start well in the past so the very first penalty isn't blocked by the cooldown.
-        private static float _lastPenaltyTime = -100f;
+        // One cooldown timer per kind of event, so e.g. a punch doesn't silence an aimed weapon.
+        // They start well in the past so the very first penalty isn't blocked by the cooldown.
+        private static float _lastPunchTime = -100f;
+        private static float _lastKillTime = -100f;
+        private static float _lastAimTime = -100f;
+        private static float _lastPickpocketTime = -100f;
 
         public static void Postfix(SpecialCustomer __instance)
         {
@@ -44,46 +48,46 @@ namespace BetterSpecialCustomers.Patches
         private static void OnPunched(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPenaltyTime < 20f) return;
+            if (Time.time - _lastPunchTime < 20f) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
-            _lastPenaltyTime = Time.time;
+            _lastPunchTime = Time.time;
             GroupRelationships.Penalize(group.GroupId, 0.25f, "punched");
         }
 
         private static void OnKilledSomeone(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPenaltyTime < 20f) return;
+            if (Time.time - _lastKillTime < 20f) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
-            _lastPenaltyTime = Time.time;
+            _lastKillTime = Time.time;
             GroupRelationships.Penalize(group.GroupId, 1f, "customer killed");
         }
         private static void OnAimedAt(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPenaltyTime < 20f) return;
+            if (Time.time - _lastAimTime < 20f) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
-            _lastPenaltyTime = Time.time;
+            _lastAimTime = Time.time;
             GroupRelationships.Penalize(group.GroupId, 0.25f, "aimed weapom");
         }
         private static void OnPickpocketFailed(Player thief)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPenaltyTime < 20f) return;
+            if (Time.time - _lastPickpocketTime < 20f) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
-            _lastPenaltyTime = Time.time;
+            _lastPickpocketTime = Time.time;
             GroupRelationships.Penalize(group.GroupId, 0.25f, "pickpocket failed");
         }
     }
