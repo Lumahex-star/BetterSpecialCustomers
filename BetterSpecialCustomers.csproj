@@ -944,7 +944,6 @@
 
 	<ItemGroup>
 		<Compile Include="Core.cs" />
-		<Compile Include="Diagnostics\ClothingDump.cs" />
 		<Compile Include="Diagnostics\PatchDiagnostics.cs" />
 		<Compile Include="Patches\BikersQuestChoicePatch.cs" />
 		<Compile Include="Patches\BusinessmenQuestChoicePatch.cs" />

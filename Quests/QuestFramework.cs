@@ -79,7 +79,7 @@ namespace BetterSpecialCustomers.Quests
     {
         // DEBUG: when true the leader always has a job and you can take it again straight after finishing it,
         // as often as you like within one visit. Set to false for normal play.
-        public static readonly bool DebugMode = true;
+        public static readonly bool DebugMode = false;
 
         // Chance (0 to 1) that a leader has a job on a given visit.
         public static float OfferChance => DebugMode ? 1f : 0.5f;

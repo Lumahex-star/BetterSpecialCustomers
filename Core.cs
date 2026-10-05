@@ -32,14 +32,8 @@ namespace BetterSpecialCustomers
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
         }
 
-        // TEMPORARY: press F9 to list every clothing item in the log (to find the biker clothes). Remove later.
         public override void OnUpdate()
         {
-            if (Input.GetKeyDown(KeyCode.F9))
-                BetterSpecialCustomers.Diagnostics.ClothingDump.Run();
-            if (Input.GetKeyDown(KeyCode.F10))
-                BetterSpecialCustomers.Diagnostics.ClothingDump.RunAllItems();
-
             // About once a second: let the hippies' package job notice the package moving between dead drops.
             if (Time.unscaledTime >= _nextQuestTick)
             {
