@@ -74,7 +74,6 @@ public class RelationshipDeparturePatch
             return;
 
         GroupRelationships.EndVisit(group.GroupId);
-        BetterSpecialCustomers.Quests.BikersQuest.ResetForNewVisit(group.GroupId);
-        BetterSpecialCustomers.Quests.AuditQuest.ResetForNewVisit(group.GroupId);
+        BetterSpecialCustomers.Quests.JobController.OnGroupLeft(group.GroupId);
     }
 }
