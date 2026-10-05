@@ -25,11 +25,12 @@ namespace BetterSpecialCustomers
     {
         public override void OnInitializeMelon()
         {
-            LoggerInstance.Msg("Initialized.");
+            LoggerInstance.Msg("Initialized. (Quest test)");
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.Probe();
             // Patch each class separately (instead of PatchAll) so one failing patch can't stop the others.
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
+            BetterSpecialCustomers.Quests.BikersQuest.Register();
         }
 
     }
