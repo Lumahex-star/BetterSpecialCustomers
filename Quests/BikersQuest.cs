@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using S1API.Entities;               // NPC
@@ -179,6 +180,7 @@ namespace BetterSpecialCustomers.Quests
 
         private void ApplyBikerLook()
         {
+            ClearLayers(); // earlier runs' clothes would otherwise pile up
             Color hair = Pick(HairColors);
 
             Appearance.Set<Gender>(0f);
@@ -227,6 +229,53 @@ namespace BetterSpecialCustomers.Quests
                 Wear<Hands>(new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Hands/FingerlessGloves/FingerlessGloves");
             if (UnityEngine.Random.value < 0.4f)
                 Wear<Neck>(Color.white, Neck.GoldChain, "Avatar/Accessories/Neck/SilverChain/SilverChain");
+
+            ApplyAppearanceNow();
+        }
+
+        // S1API's Set/With... calls only change its stored settings; they reach the model when S1API applies them,
+        // which it does just once (right after creation). So we apply them ourselves, through reflection because
+        // the method is internal.
+        private void ApplyAppearanceNow()
+        {
+            try
+            {
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                var type = typeof(NPCAppearance);
+                object avatar = type.GetField("_runtimeAvatar", flags)?.GetValue(Appearance);
+                var apply = type.GetMethod("ApplyToAvatar", flags);
+                if (avatar == null || apply == null)
+                {
+                    Melon<Core>.Logger.Warning($"[quest] could not apply the look (avatar found: {avatar != null}, method found: {apply != null})");
+                    return;
+                }
+                apply.Invoke(Appearance, new[] { avatar });
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Warning("[quest] applying the look failed: " + ex.Message);
+            }
+        }
+
+        // Empties the face, body and accessory layer lists in S1API's stored settings.
+        private void ClearLayers()
+        {
+            try
+            {
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                object settings = typeof(NPCAppearance).GetField("_customAvatarSettings", flags)?.GetValue(Appearance);
+                if (settings == null) return;
+                foreach (string name in new[] { "FaceLayerSettings", "BodyLayerSettings", "AccessorySettings" })
+                {
+                    object list = settings.GetType().GetField(name, flags)?.GetValue(settings)
+                                  ?? settings.GetType().GetProperty(name, flags)?.GetValue(settings);
+                    list?.GetType().GetMethod("Clear", Type.EmptyTypes)?.Invoke(list, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Warning("[quest] clearing old layers failed: " + ex.Message);
+            }
         }
 
         // Wears the first of the given accessory paths that the game can actually load. Some of these paths are
