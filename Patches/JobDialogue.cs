@@ -39,20 +39,9 @@ namespace BetterSpecialCustomers.Patches
             var controller = leader.DialogueHandler.GetComponent<DialogueController>();
             if (controller == null || !_added.Add(controller.GetInstanceID())) return;
 
-            // shouldShowCheck is asked every time the menu opens, and the leader's ID changes with each group.
-            var ask = new DialogueController.DialogueChoice();
-            ask.ChoiceText = AskText;
-            ask.Enabled = true;
-            ask.shouldShowCheck = enabled => enabled && leader.ID == LeaderId && Job.CanAsk();
-            ask.onChoosen.AddListener(OnAsk);
-            controller.AddDialogueChoice(ask);
-
-            var handIn = new DialogueController.DialogueChoice();
-            handIn.ChoiceText = HandInText;
-            handIn.Enabled = true;
-            handIn.shouldShowCheck = enabled => enabled && leader.ID == LeaderId && Job.IsReadyToHandIn();
-            handIn.onChoosen.AddListener(OnHandIn);
-            controller.AddDialogueChoice(handIn);
+            // The check is asked every time the menu opens, and the leader's ID changes with each group.
+            DialogueChoiceUtil.Add(controller, AskText, () => leader.ID == LeaderId && Job.CanAsk(), OnAsk);
+            DialogueChoiceUtil.Add(controller, HandInText, () => leader.ID == LeaderId && Job.IsReadyToHandIn(), OnHandIn);
 
             MelonLogger.Msg($"[quest] added the quest choices for leader '{LeaderId}'");
         }

@@ -1,5 +1,4 @@
 using HarmonyLib;
-using UnityEngine;
 using BetterSpecialCustomers.Quests;
 #if MONO
 using ScheduleOne.Dialogue;
@@ -41,12 +40,7 @@ namespace BetterSpecialCustomers.Patches
             var npc = __instance.GetComponentInParent<NPC>();
             if (npc == null || !IsInvitable(npc)) return;
 
-            var choice = new DialogueController.DialogueChoice();
-            choice.ChoiceText = InviteText;
-            choice.Enabled = true;
-            choice.shouldShowCheck = enabled => enabled && PartyTask.CanInvite(npc.ID);
-            choice.onChoosen.AddListener(() => OnInvite(npc));
-            __instance.AddDialogueChoice(choice);
+            DialogueChoiceUtil.Add(__instance, InviteText, () => PartyTask.CanInvite(npc.ID), () => OnInvite(npc));
         }
 
         // Not the group leaders (they have their own jobs), the police, or our own quest targets.
