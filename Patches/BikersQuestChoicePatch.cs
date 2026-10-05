@@ -82,8 +82,8 @@ namespace BetterSpecialCustomers.Patches
 
                 if (save.OfferState == 1)
                 {
-                    line = "Somebody's been feedin' the cops about club business. I've got a name now. Find him, and make sure he never talks again.";
-                    BikersQuest.Start(groupId);
+                    BikersQuest.Start(groupId); // picks the target's name
+                    line = $"Somebody's been feedin' the cops about club business. Name's {save.TargetName}. Find him, and make sure he never talks again.";
                 }
                 else
                 {

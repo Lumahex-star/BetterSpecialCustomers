@@ -37,6 +37,10 @@ namespace BetterSpecialCustomers.Quests
         [SaveableField("bikers_quest_offer")]
         public int OfferState;
 
+        // This run's target, so he keeps the same name after a reload.
+        [SaveableField("bikers_quest_target_name")]
+        public string TargetName = string.Empty;
+
         // How many times the quest has been started. Gives each run its own quest id.
         [SaveableField("bikers_quest_runs")]
         public int Runs;
@@ -57,6 +61,16 @@ namespace BetterSpecialCustomers.Quests
         public static readonly Vector3 ParkedPosition = new Vector3(0f, -200f, 0f);
 
         private static Informant _instance;
+        private static int _lookAppliedForRun = -1; // in-memory only: which run his random look was made for
+
+        private static readonly string[] FirstNames =
+            { "Dale", "Rusty", "Vince", "Eddie", "Skeet", "Lenny", "Wade", "Cody", "Marv", "Gus", "Terry", "Bo" };
+        private static readonly string[] LastNames =
+            { "Hollis", "Brandt", "Keane", "Mercer", "Voss", "Pruitt", "Lund", "Garrity", "Boone", "Sykes", "Dunn", "Rourke" };
+
+        // A fresh random name for each run, so it is never the same person twice.
+        public static string PickName() =>
+            FirstNames[UnityEngine.Random.Range(0, FirstNames.Length)] + " " + LastNames[UnityEngine.Random.Range(0, LastNames.Length)];
 
         public override bool IsPhysical => true;
 
@@ -64,7 +78,7 @@ namespace BetterSpecialCustomers.Quests
 
         protected override void ConfigurePrefab(NPCPrefabBuilder builder)
         {
-            builder.WithIdentity("bikers_informant", "Club", "Informant")
+            builder.WithIdentity("bikers_informant", "Informant", string.Empty)
                    .WithSpawnPosition(ParkedPosition);
         }
 
@@ -90,6 +104,19 @@ namespace BetterSpecialCustomers.Quests
 
         private void Deploy()
         {
+            var save = BikersQuestSave.Instance;
+            if (save != null && !string.IsNullOrEmpty(save.TargetName))
+            {
+                int split = save.TargetName.IndexOf(' ');
+                FirstName = split > 0 ? save.TargetName.Substring(0, split) : save.TargetName;
+                LastName = split > 0 ? save.TargetName.Substring(split + 1) : string.Empty;
+            }
+            if (save != null && _lookAppliedForRun != save.Runs)
+            {
+                _lookAppliedForRun = save.Runs;
+                Appearance.GenerateRandomAppearance(); // a different face and clothes each run
+            }
+
             if (IsDead) Revive();
             Heal((int)MaxHealth);
             IsInvincible = false;
@@ -125,9 +152,11 @@ namespace BetterSpecialCustomers.Quests
         {
             base.OnCreated();
             _instance = this;
-            var kill = AddEntry("Find and kill the informant", Informant.HidingPosition);
+            string name = BikersQuestSave.Instance?.TargetName;
+            if (string.IsNullOrEmpty(name)) name = "the informant";
+            var kill = AddEntry($"Find and kill {name}", Informant.HidingPosition);
             kill.SetPOIToNPC<Informant>(); // make the marker follow him (returns false if he isn't found)
-            AddEntry("Tell Diesel the informant is dealt with");
+            AddEntry($"Tell Diesel {name} is dealt with");
             Subscribe();
             Melon<Core>.Logger.Msg("[quest] BikersQuest created");
         }
@@ -190,7 +219,11 @@ namespace BetterSpecialCustomers.Quests
                 BikersQuestSave.Instance.Accepted = true;
                 BikersQuestSave.Instance.GroupId = groupId ?? string.Empty;
             }
-            if (BikersQuestSave.Instance != null) BikersQuestSave.Instance.Runs++;
+            if (BikersQuestSave.Instance != null)
+            {
+                BikersQuestSave.Instance.Runs++;
+                BikersQuestSave.Instance.TargetName = Informant.PickName();
+            }
             if (_instance == null)
             {
                 // Each run gets its own id, so a new run never collides with an earlier finished one.
@@ -213,6 +246,7 @@ namespace BetterSpecialCustomers.Quests
             if (_instance != null && save.Accepted && !save.Completed) _instance.Cancel();
             _instance = null;
             save.OfferState = 0;
+            save.TargetName = string.Empty;
             save.Accepted = false;
             save.TargetKilled = false;
             save.Completed = false;
