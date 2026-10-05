@@ -40,6 +40,16 @@ namespace BetterSpecialCustomers.Quests
         // Chance that an invited NPC turns the invitation down.
         public const float RejectChance = 0.3f;
 
+        // The reward: party supplies that are useful to the player (mixing ingredients). Item id, amount.
+        private static readonly KeyValuePair<string, int>[] PartySupplies =
+        {
+            new KeyValuePair<string, int>("energydrink", 5),
+            new KeyValuePair<string, int>("donut", 5),
+            new KeyValuePair<string, int>("megabean", 2),
+        };
+
+        public static void GiveSupplies() => RewardUtil.GiveItems(PartySupplies);
+
         private static PartyBusQuestSave Save => PartyBusQuestSave.Instance;
 
         // The invite option shows on an NPC while the job is open, the word is not yet out, and he has not been asked.
@@ -94,7 +104,8 @@ namespace BetterSpecialCustomers.Quests
             QuestIdPrefix = "partybus_word_quest",
             RewardLogLabel = "Chad's spread-the-word job",
             RelationshipReward = 1f,
-            CashReward = 0f,                       // the reward is items (to be chosen) and a bigger relationship boost
+            CashReward = 0f,                       // the reward is party supplies and a bigger relationship boost
+            GrantExtraReward = PartyTask.GiveSupplies,
             GetSave = () => PartyBusQuestSave.Instance?.Data,
             PickName = () => string.Empty,         // no target to name
             RefreshTarget = PartyTask.Refresh,

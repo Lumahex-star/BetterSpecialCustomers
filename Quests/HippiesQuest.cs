@@ -7,14 +7,8 @@ using S1API.Saveables;              // SaveableField
 using UnityEngine;
 #if MONO
 using GameDeadDrop = ScheduleOne.Economy.DeadDrop;
-using GameItemInstance = ScheduleOne.ItemFramework.ItemInstance;
-using GameRegistry = ScheduleOne.Registry;
-using GameInventory = ScheduleOne.PlayerScripts.PlayerInventory;
 #elif IL2CPP
 using GameDeadDrop = Il2CppScheduleOne.Economy.DeadDrop;
-using GameItemInstance = Il2CppScheduleOne.ItemFramework.ItemInstance;
-using GameRegistry = Il2CppScheduleOne.Registry;
-using GameInventory = Il2CppScheduleOne.PlayerScripts.PlayerInventory;
 #endif
 
 namespace BetterSpecialCustomers.Quests
@@ -102,17 +96,6 @@ namespace BetterSpecialCustomers.Quests
             }
         }
 
-        private static GameItemInstance Create(string itemId, int quantity)
-        {
-            var definition = GameRegistry.GetItem(itemId);
-            if (definition == null)
-            {
-                Melon<Core>.Logger.Warning($"[quest] item '{itemId}' does not exist");
-                return null;
-            }
-            return definition.GetDefaultInstance(quantity);
-        }
-
         // Called whenever the job's state changes: sets the job up when it should be running, cleans up when it shouldn't.
         public static void Refresh()
         {
@@ -144,7 +127,7 @@ namespace BetterSpecialCustomers.Quests
             var far = all.FindAll(d => (d.transform.position - from.transform.position).magnitude >= MinDropDistance);
             var to = far.Count > 0 ? far[UnityEngine.Random.Range(0, far.Count)] : all.Find(d => d != from);
 
-            var package = Create(PackageItemId, 1);
+            var package = RewardUtil.CreateItem(PackageItemId, 1);
             if (package == null) return;
             from.Storage.InsertItem(package);
 
@@ -204,25 +187,7 @@ namespace BetterSpecialCustomers.Quests
         }
 
         // The reward: put the grow supplies in the player's inventory.
-        public static void GiveSupplies()
-        {
-            var inventory = ScheduleOneInventory();
-            if (inventory == null) { Melon<Core>.Logger.Warning("[quest] no inventory to give the supplies to"); return; }
-            foreach (var supply in Supplies)
-            {
-                var item = Create(supply.Key, supply.Value);
-                if (item != null) inventory.AddItemToInventory(item);
-            }
-        }
-
-        private static GameInventory ScheduleOneInventory()
-        {
-#if MONO
-            return ScheduleOne.DevUtilities.PlayerSingleton<GameInventory>.Instance;
-#else
-            return Il2CppScheduleOne.DevUtilities.PlayerSingleton<GameInventory>.Instance;
-#endif
-        }
+        public static void GiveSupplies() => RewardUtil.GiveItems(Supplies);
     }
 
     public class HippiesQuest : Quest

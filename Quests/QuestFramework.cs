@@ -11,9 +11,15 @@ using UnityEngine;
 #if MONO
 using GameNPC = ScheduleOne.NPCs.NPC;
 using GameBuilding = ScheduleOne.Map.NPCEnterableBuilding;
+using GameItemInstance = ScheduleOne.ItemFramework.ItemInstance;
+using GameRegistry = ScheduleOne.Registry;
+using GameInventory = ScheduleOne.PlayerScripts.PlayerInventory;
 #elif IL2CPP
 using GameNPC = Il2CppScheduleOne.NPCs.NPC;
 using GameBuilding = Il2CppScheduleOne.Map.NPCEnterableBuilding;
+using GameItemInstance = Il2CppScheduleOne.ItemFramework.ItemInstance;
+using GameRegistry = Il2CppScheduleOne.Registry;
+using GameInventory = Il2CppScheduleOne.PlayerScripts.PlayerInventory;
 #endif
 
 namespace BetterSpecialCustomers.Quests
@@ -231,6 +237,38 @@ namespace BetterSpecialCustomers.Quests
                 if (save == null || !string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) continue;
                 job.ResetRun();
                 Melon<Core>.Logger.Msg($"[quest] {groupId} left, their job can be taken again next visit");
+            }
+        }
+    }
+
+    // Helpers for making items and handing them to the player. Uses the game's own item registry and inventory.
+    internal static class RewardUtil
+    {
+        // Makes a stack of an item by its id (see the F10 item list); null, with a log line, if the id does not exist.
+        public static GameItemInstance CreateItem(string itemId, int quantity)
+        {
+            var definition = GameRegistry.GetItem(itemId);
+            if (definition == null)
+            {
+                Melon<Core>.Logger.Warning($"[quest] item '{itemId}' does not exist");
+                return null;
+            }
+            return definition.GetDefaultInstance(quantity);
+        }
+
+        // Puts each (item id, amount) pair in the player's inventory.
+        public static void GiveItems(params KeyValuePair<string, int>[] items)
+        {
+#if MONO
+            var inventory = ScheduleOne.DevUtilities.PlayerSingleton<GameInventory>.Instance;
+#else
+            var inventory = Il2CppScheduleOne.DevUtilities.PlayerSingleton<GameInventory>.Instance;
+#endif
+            if (inventory == null) { Melon<Core>.Logger.Warning("[quest] no inventory to give the reward to"); return; }
+            foreach (var pair in items)
+            {
+                var item = CreateItem(pair.Key, pair.Value);
+                if (item != null) inventory.AddItemToInventory(item);
             }
         }
     }
