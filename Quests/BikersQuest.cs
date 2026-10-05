@@ -3,6 +3,8 @@ using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Internal.Abstraction;   // Saveable
+using S1API.Leveling;               // LevelManager
+using S1API.Money;                  // Money
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
 using UnityEngine;
@@ -30,6 +32,10 @@ namespace BetterSpecialCustomers.Quests
         // Reported back to Diesel, quest finished and rewarded.
         [SaveableField("bikers_quest_completed")]
         public bool Completed;
+
+        // This visit's roll for whether Diesel has a job: 0 = not asked yet, 1 = he has one, 2 = nothing this time.
+        [SaveableField("bikers_quest_offer")]
+        public int OfferState;
 
         // How many times the quest has been started. Gives each run its own quest id.
         [SaveableField("bikers_quest_runs")]
@@ -157,8 +163,13 @@ namespace BetterSpecialCustomers.Quests
 
     public class BikersQuest : Quest
     {
-        // Reward for finishing the job, applied to the group's relationship (it takes effect next visit).
-        private const float RelationshipReward = 1f;
+        // Chance (0 to 1) that Diesel has a job on a given visit.
+        public const float OfferChance = 0.5f;
+
+        // Rewards for finishing the job. The relationship bonus takes effect from the group's next visit.
+        private const float RelationshipReward = 0.5f;
+        private const float CashReward = 5000f;
+        private const int XpReward = 100;
 
         private static BikersQuest _instance;
 
@@ -216,6 +227,10 @@ namespace BetterSpecialCustomers.Quests
 
         private void HandleComplete()
         {
+            Money.ChangeCashBalance(CashReward, true, true);
+            LevelManager.AddXP(XpReward);
+            Melon<Core>.Logger.Msg($"[quest] paid ${CashReward} and {XpReward} XP");
+
             string group = BikersQuestSave.Instance?.GroupId;
             if (!string.IsNullOrEmpty(group))
                 GroupRelationships.Reward(group, RelationshipReward, "completed Diesel's docks job");
@@ -250,11 +265,12 @@ namespace BetterSpecialCustomers.Quests
         public static void ResetForNewVisit(string groupId)
         {
             var save = BikersQuestSave.Instance;
-            if (save == null || !save.Accepted) return;
+            if (save == null) return;
             if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
 
             if (_instance != null && _instance.QuestState == QuestState.Active) _instance.Cancel();
             _instance = null;
+            save.OfferState = 0;
             save.Accepted = false;
             save.ThiefKilled = false;
             save.Completed = false;
