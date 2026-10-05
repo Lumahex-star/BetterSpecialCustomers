@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using S1API.Entities;               // NPC
@@ -48,10 +48,7 @@ namespace BetterSpecialCustomers.Quests
             Appearance.Build();
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
-            OnHealthChanged += (oldHealth, newHealth) =>
-            {
-                if (newHealth <= 0f) BikersQuest.OnThiefKilled();
-            };
+            OnDeath += BikersQuest.OnThiefKilled;
         }
     }
 
@@ -70,26 +67,35 @@ namespace BetterSpecialCustomers.Quests
         {
             base.OnCreated();
             _instance = this;
-            AddEntry("Kill the thief at the docks", DocksThief.DocksPosition, "Docks");
+            var entry = AddEntry("Kill the thief at the docks", DocksThief.DocksPosition);
+            entry.SetPOIToNPC<DocksThief>(); // make the marker follow him (returns false if he isn't found)
+            Subscribe();
         }
 
         protected override void OnLoaded()
         {
             base.OnLoaded();
             _instance = this;
+            Subscribe();
+        }
+
+        // Quest.OnComplete is an event, not a method to override. Unsubscribe first so we never subscribe twice.
+        private void Subscribe()
+        {
+            OnComplete -= HandleComplete;
+            OnComplete += HandleComplete;
         }
 
         // Called by DocksThief when its health reaches zero.
         public static void OnThiefKilled()
         {
             if (_instance == null) return;
-            _instance.CompleteEntry(0);
+            if (_instance.QuestEntries.Count > 0) _instance.QuestEntries[0].Complete();
             _instance.Complete();
         }
 
-        protected override void OnComplete()
+        private void HandleComplete()
         {
-            base.OnComplete();
             string group = BikersQuestSave.Instance?.GroupId;
             if (!string.IsNullOrEmpty(group))
                 GroupRelationships.Reward(group, RelationshipReward, "completed Diesel's docks job");
