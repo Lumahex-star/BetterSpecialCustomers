@@ -35,10 +35,10 @@ namespace BetterSpecialCustomers.Quests
     }
 
     // The target. S1API NPCs are created from their class, so this one always exists in the world.
-    // PLACEHOLDER: set DocksPosition to a real spot at the docks before testing.
+    
     public sealed class DocksThief : NPC
     {
-        public static readonly Vector3 DocksPosition = new Vector3(0f, 0f, 0f);
+        public static readonly Vector3 DocksPosition = new Vector3(-78.2f, -2.3f, -33.2f);
 
         public override bool IsPhysical => true;
 
