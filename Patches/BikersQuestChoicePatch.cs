@@ -83,7 +83,7 @@ namespace BetterSpecialCustomers.Patches
                 if (save.OfferState == 1)
                 {
                     BikersQuest.Start(groupId); // picks the target's name
-                    line = $"Somebody's been feedin' the cops about club business. Name's {save.TargetName}. Find him, and make sure he never talks again.";
+                    line = $"Somebody's been feedin' the cops about club business. Name's {save.TargetName}. He's holed up at The Piss Hut. Knock on the door, and make sure he never talks again.";
                 }
                 else
                 {

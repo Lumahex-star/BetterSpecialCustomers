@@ -8,6 +8,13 @@ using S1API.Money;                  // Money
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
 using UnityEngine;
+#if MONO
+using GameNPC = ScheduleOne.NPCs.NPC;
+using GameBuilding = ScheduleOne.Map.NPCEnterableBuilding;
+#elif IL2CPP
+using GameNPC = Il2CppScheduleOne.NPCs.NPC;
+using GameBuilding = Il2CppScheduleOne.Map.NPCEnterableBuilding;
+#endif
 
 namespace BetterSpecialCustomers.Quests
 {
@@ -57,7 +64,8 @@ namespace BetterSpecialCustomers.Quests
     // PLACEHOLDER: ParkedPosition is a guess; if he falls out of the world or gets stuck, pick a safer spot.
     public sealed class Informant : NPC
     {
-        public static readonly Vector3 HidingPosition = new Vector3(-78.2f, -2.3f, -33.2f);
+        private const string NpcId = "bikers_informant";
+        private const string HideoutName = "The Piss Hut";
         public static readonly Vector3 ParkedPosition = new Vector3(0f, -200f, 0f);
 
         private static Informant _instance;
@@ -93,7 +101,7 @@ namespace BetterSpecialCustomers.Quests
             Refresh();
         }
 
-        // Puts him at his hiding place while the job is open and he is still alive, otherwise parks him.
+        // Puts him inside The Piss Hut while the job is open and he is still alive, otherwise parks him.
         public static void Refresh()
         {
             if (_instance == null) return;
@@ -120,13 +128,52 @@ namespace BetterSpecialCustomers.Quests
             if (IsDead) Revive();
             Heal((int)MaxHealth);
             IsInvincible = false;
-            if ((Position - HidingPosition).sqrMagnitude > 1f) Position = HidingPosition;
+            EnterHideout();
         }
 
         private void Park()
         {
+            LeaveHideout();
             IsInvincible = true;
             if ((Position - ParkedPosition).sqrMagnitude > 1f) Position = ParkedPosition;
+        }
+
+        // ---- Hiding in a building ----------------------------------------------------------------------------
+        // Entering a building hides an NPC (its avatar is switched off) and parks it at the door; knocking on that
+        // door summons it back out for a few seconds. The Piss Hut needs no interior for this to work.
+
+        private static GameNPC FindGameNpc()
+        {
+            foreach (var n in UnityEngine.Object.FindObjectsOfType<GameNPC>(true))
+                if (n != null && n.ID == NpcId) return n;
+            return null;
+        }
+
+        private static GameBuilding FindHideout()
+        {
+            foreach (var b in UnityEngine.Object.FindObjectsOfType<GameBuilding>(true))
+                if (b != null && string.Equals(b.BuildingName, HideoutName, StringComparison.OrdinalIgnoreCase)) return b;
+            return null;
+        }
+
+        private static void EnterHideout()
+        {
+            var npc = FindGameNpc();
+            var hut = FindHideout();
+            if (npc == null || hut == null || hut.Doors.Length == 0)
+            {
+                Melon<Core>.Logger.Warning($"[quest] could not hide the informant (npc found: {npc != null}, building found: {hut != null})");
+                return;
+            }
+            if (npc.CurrentBuilding == hut) return;
+            if (npc.isInBuilding) npc.ExitBuilding();
+            npc.EnterBuilding(null, hut.GUID.ToString(), 0);
+        }
+
+        private static void LeaveHideout()
+        {
+            var npc = FindGameNpc();
+            if (npc != null && npc.isInBuilding) npc.ExitBuilding();
         }
     }
 
@@ -154,8 +201,8 @@ namespace BetterSpecialCustomers.Quests
             _instance = this;
             string name = BikersQuestSave.Instance?.TargetName;
             if (string.IsNullOrEmpty(name)) name = "the informant";
-            var kill = AddEntry($"Find and kill {name}", Informant.HidingPosition);
-            kill.SetPOIToNPC<Informant>(); // make the marker follow him (returns false if he isn't found)
+            var kill = AddEntry($"Knock on the door of The Piss Hut and kill {name}");
+            kill.SetPOIToNPC<Informant>(); // the marker follows him; while hidden he sits at the hut's door
             AddEntry($"Tell Diesel {name} is dealt with");
             Subscribe();
             Melon<Core>.Logger.Msg("[quest] BikersQuest created");

@@ -31,15 +31,5 @@ namespace BetterSpecialCustomers
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
         }
-
-        // TEMPORARY: press F9 to log your position, for placing the docks thief. Remove before release.
-        public override void OnUpdate()
-        {
-            if (Input.GetKeyDown(KeyCode.F9) && Camera.main != null)
-            {
-                Vector3 p = Camera.main.transform.position;
-                LoggerInstance.Msg($"Position: new Vector3({p.x:0.0}f, {p.y - 1.5f:0.0}f, {p.z:0.0}f)");
-            }
-        }
     }
 }
