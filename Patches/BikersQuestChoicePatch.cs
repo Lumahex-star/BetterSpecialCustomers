@@ -70,14 +70,16 @@ namespace BetterSpecialCustomers.Patches
             if (!string.IsNullOrEmpty(groupId)) save.GroupId = groupId; // lets the visit reset find this group
 
             string line;
-            if (save.Completed)
+            if (save.Completed && !BikersQuest.DebugMode)
             {
                 line = "You already did right by us this run. Come back when we roll through again.";
             }
             else
             {
+                if (save.Completed) BikersQuest.ResetRun(); // debug mode only: start a fresh run
+
                 // Roll once per visit and remember it, so asking again can't re-roll.
-                if (save.OfferState == 0)
+                if (save.OfferState == 0 || BikersQuest.DebugMode)
                     save.OfferState = UnityEngine.Random.value < BikersQuest.OfferChance ? 1 : 2;
 
                 if (save.OfferState == 1)

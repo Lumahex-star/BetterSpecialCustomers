@@ -244,8 +244,12 @@ namespace BetterSpecialCustomers.Quests
 
     public class BikersQuest : Quest
     {
+        // DEBUG: when true Diesel always has a job and you can take it again straight after finishing it,
+        // as often as you like within one visit. Set to false for normal play.
+        public static readonly bool DebugMode = true;
+
         // Chance (0 to 1) that Diesel has a job on a given visit.
-        public const float OfferChance = 0.5f;
+        public static float OfferChance => DebugMode ? 1f : 0.5f;
 
         // Rewards for finishing the job. The relationship bonus takes effect from the group's next visit.
         private const float RelationshipReward = 0.5f;
@@ -347,14 +351,11 @@ namespace BetterSpecialCustomers.Quests
             Melon<Core>.Logger.Msg("[quest] created; S1API sets up its entries and begins it on the next frame");
         }
 
-        // Called when a customer group leaves. The job is once per visit: when Diesel's group leaves, an open job is
-        // dropped and the quest can be taken again on their next visit.
-        public static void ResetForNewVisit(string groupId)
+        // Clears the saved progress (and drops an open job) so the quest can be taken again.
+        public static void ResetRun()
         {
             var save = BikersQuestSave.Instance;
             if (save == null) return;
-            if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
-
             if (_instance != null && save.Accepted && !save.Completed) _instance.Cancel();
             _instance = null;
             save.OfferState = 0;
@@ -363,6 +364,17 @@ namespace BetterSpecialCustomers.Quests
             save.TargetKilled = false;
             save.Completed = false;
             Informant.Refresh();
+        }
+
+        // Called when a customer group leaves. The job is once per visit: when Diesel's group leaves, an open job is
+        // dropped and the quest can be taken again on their next visit.
+        public static void ResetForNewVisit(string groupId)
+        {
+            var save = BikersQuestSave.Instance;
+            if (save == null) return;
+            if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
+
+            ResetRun();
             Melon<Core>.Logger.Msg("[quest] group left, the job can be taken again next visit");
         }
     }
