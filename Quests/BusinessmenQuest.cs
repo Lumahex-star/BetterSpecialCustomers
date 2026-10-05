@@ -130,7 +130,7 @@ namespace BetterSpecialCustomers.Quests
     public sealed class Auditor : NPC
     {
         private const string NpcId = "businessmen_auditor";
-        private const string HomeName = "Upscale Apartments";
+        private const string HomeName = "Tall Tower";
         public static readonly Vector3 ParkedPosition = new Vector3(0f, -200f, 0f);
 
         private static Auditor _instance;
@@ -155,11 +155,11 @@ namespace BetterSpecialCustomers.Quests
                    .WithSchedule(plan =>
                    {
                        // Times are HHMM; durations are in minutes.
-                       var home = Building.Get<S1API.Map.Buildings.UpscaleApartments>();
+                       var home = Building.Get<S1API.Map.Buildings.TallTower>();
                        var office = Building.Get<S1API.Map.Buildings.TownHall>();
                        var lunch = Building.Get<S1API.Map.Buildings.Cafe>();
                        var dinner = Building.Get<S1API.Map.Buildings.ChineseRestaurant>();
-                       plan.StayInBuilding(home, 0, 450);      // 00:00-07:30 at home
+                       plan.StayInBuilding(home, 0, 450);      // 00:00-07:30 at home (the tower)
                        plan.StayInBuilding(office, 800, 240);  // 08:00-12:00 at the office
                        plan.StayInBuilding(lunch, 1215, 60);   // lunch at the cafe
                        plan.StayInBuilding(office, 1330, 210); // 13:30-17:00 at the office
