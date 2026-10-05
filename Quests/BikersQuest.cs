@@ -194,12 +194,56 @@ namespace BetterSpecialCustomers.Quests
             if (UnityEngine.Random.value < 0.6f)
                 Appearance.WithFaceLayer<FacialHair>(UnityEngine.Random.value < 0.5f ? FacialHair.Stubble : FacialHair.Goatee, hair);
 
-            Appearance.WithBodyLayer<Shirts>(Shirts.TShirt, (Color)Pick(ShirtColors));
-            Appearance.WithBodyLayer<Pants>(Pants.Jeans, (Color)Pick(JeansColors));
-            Appearance.WithAccessoryLayer<Chest>(Chest.OpenVest, new Color(0.12f, 0.09f, 0.07f)); // the leather "cut"
-            Appearance.WithAccessoryLayer<Feet>(Feet.CombatBoots, new Color(0.1f, 0.1f, 0.1f));
+            // Top and bottom layers (the paths for these are in S1API's lists).
+            string[] tops = { Shirts.TShirt, Shirts.TShirt, Shirts.VNeck, Shirts.FlannelButtonUp, Shirts.RolledButtonUp };
+            Appearance.WithBodyLayer<Shirts>(Pick(tops), (Color)Pick(ShirtColors));
+            Appearance.WithBodyLayer<Pants>(UnityEngine.Random.value < 0.7f ? Pants.Jeans : Pants.CargoPants, (Color)Pick(JeansColors));
+
+            // Outerwear: mostly the biker jacket, sometimes a leather jacket or an open vest.
+            Color leather = UnityEngine.Random.value < 0.7f ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.2f, 0.12f, 0.07f);
+            float jacket = UnityEngine.Random.value;
+            if (jacket < 0.6f)
+                Wear<Chest>(leather, "Avatar/Accessories/Chest/BikerJacket/BikerJacket", "Avatar/Accessories/Chest/BikerJacket/Biker Jacket");
+            else if (jacket < 0.85f)
+                Wear<Chest>(leather, "Avatar/Accessories/Chest/LeatherJacket/LeatherJacket", "Avatar/Accessories/Chest/LeatherJacket/leatherJacket");
+            else
+                Wear<Chest>(leather, Chest.OpenVest);
+
+            // Boots, a belt, and one of: bandana, beanie, shades or nothing on the head.
+            Wear<Feet>(new Color(0.1f, 0.1f, 0.1f), UnityEngine.Random.value < 0.85f ? Feet.CombatBoots : Feet.Sneakers);
+            if (UnityEngine.Random.value < 0.5f)
+                Wear<Waist>(new Color(0.1f, 0.07f, 0.05f), "Avatar/Accessories/Waist/Belt/Belt");
+
+            float head = UnityEngine.Random.value;
+            if (head < 0.3f)
+                Wear<Head>(new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Head/Bandana/Bandana", "Avatar/Accessories/Head/PaisleyBandana/PaisleyBandana");
+            else if (head < 0.5f)
+                Wear<Head>(new Color(0.12f, 0.12f, 0.12f), Head.Beanie);
+            else if (head < 0.7f)
+                Wear<Head>(Color.white, Head.Oakleys);
+
+            // Hands and neck: fingerless gloves sometimes, a chain sometimes.
             if (UnityEngine.Random.value < 0.4f)
-                Appearance.WithAccessoryLayer<Neck>(Neck.GoldChain, Color.white);
+                Wear<Hands>(new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Hands/FingerlessGloves/FingerlessGloves");
+            if (UnityEngine.Random.value < 0.4f)
+                Wear<Neck>(Color.white, Neck.GoldChain, "Avatar/Accessories/Neck/SilverChain/SilverChain");
+        }
+
+        // Wears the first of the given accessory paths that the game can actually load. Some of these paths are
+        // educated guesses (the game's biker items are newer than S1API's lists), so a missing one is logged and skipped.
+        private void Wear<T>(Color color, params string[] candidatePaths) where T : S1API.Entities.Appearances.Base.BaseAccessoryAppearance
+        {
+            foreach (string path in candidatePaths)
+            {
+                bool exists = false;
+                try { exists = Resources.Load(path) != null; } catch { }
+                if (exists)
+                {
+                    Appearance.WithAccessoryLayer<T>(path, color);
+                    return;
+                }
+                Melon<Core>.Logger.Warning($"[quest] outfit path not found: {path}");
+            }
         }
 
         // ---- Hiding in a building ----------------------------------------------------------------------------
