@@ -303,8 +303,10 @@ namespace BetterSpecialCustomers.Quests
 
         private static GameNPC FindGameNpc(string npcId)
         {
-            foreach (var n in UnityEngine.Object.FindObjectsOfType<GameNPC>(true))
+            var all = UnityEngine.Object.FindObjectsOfType<GameNPC>(true);
+            foreach (var n in all)
                 if (n != null && n.ID == npcId) return n;
+            Melon<Core>.Logger.Warning($"[quest] NPC '{npcId}' is not among the {all.Length} NPCs in the scene");
             return null;
         }
 
@@ -321,12 +323,13 @@ namespace BetterSpecialCustomers.Quests
             var building = FindBuilding(buildingName);
             if (npc == null || building == null || building.Doors.Length == 0)
             {
-                Melon<Core>.Logger.Warning($"[quest] could not hide '{npcId}' in '{buildingName}' (npc found: {npc != null}, building found: {building != null})");
+                Melon<Core>.Logger.Warning($"[quest] could not hide '{npcId}' in '{buildingName}' (npc found: {npc != null}, building found: {building != null}, doors: {building?.Doors.Length})");
                 return;
             }
             if (npc.CurrentBuilding == building) return;
             if (npc.isInBuilding) npc.ExitBuilding();
             npc.EnterBuilding(null, building.GUID.ToString(), 0);
+            Melon<Core>.Logger.Msg($"[quest] '{npcId}' is now hidden in '{buildingName}'");
         }
 
         public static void LeaveBuilding(string npcId)

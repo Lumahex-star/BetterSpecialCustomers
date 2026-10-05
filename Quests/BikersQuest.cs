@@ -1,4 +1,5 @@
 ﻿using System;
+using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Entities.Appearances.AccessoryFields;     // Chest, Feet, Neck, Head, Hands, Waist
 using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants
@@ -66,6 +67,7 @@ namespace BetterSpecialCustomers.Quests
             base.OnCreated();
             Appearance.Build();
             _instance = this;
+            Melon<Core>.Logger.Msg("[quest] the informant NPC was created");
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
             OnDeath += BikersQuest.Job.OnObjectiveDone;
@@ -78,7 +80,14 @@ namespace BetterSpecialCustomers.Quests
             if (_instance == null) return;
             var save = BikersQuestSave.Instance?.Data;
             bool wanted = save != null && save.Accepted && !save.TargetKilled;
-            if (wanted) _instance.Deploy(save); else QuestNpcUtil.Park(_instance, NpcId);
+            try
+            {
+                if (wanted) _instance.Deploy(save); else QuestNpcUtil.Park(_instance, NpcId);
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Error($"[quest] informant {(wanted ? "deploy" : "park")} failed: {ex}");
+            }
         }
 
         private void Deploy(JobSaveData save)

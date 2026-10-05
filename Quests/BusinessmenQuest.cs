@@ -1,4 +1,5 @@
 ﻿using System;
+using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Entities.Appearances.AccessoryFields;     // Chest, Feet, Neck, Head, Hands
 using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants
@@ -78,6 +79,7 @@ namespace BetterSpecialCustomers.Quests
             base.OnCreated();
             Appearance.Build();
             _instance = this;
+            Melon<Core>.Logger.Msg("[quest] the auditor NPC was created");
             OnDeath += AuditQuest.Job.OnObjectiveDone;
             Refresh();
         }
@@ -87,7 +89,14 @@ namespace BetterSpecialCustomers.Quests
             if (_instance == null) return;
             var save = BusinessmenQuestSave.Instance?.Data;
             bool wanted = save != null && save.Accepted && !save.TargetKilled;
-            if (wanted) _instance.Deploy(save); else QuestNpcUtil.Park(_instance, NpcId);
+            try
+            {
+                if (wanted) _instance.Deploy(save); else QuestNpcUtil.Park(_instance, NpcId);
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Error($"[quest] auditor {(wanted ? "deploy" : "park")} failed: {ex}");
+            }
         }
 
         private void Deploy(JobSaveData save)
