@@ -47,7 +47,7 @@ namespace BetterSpecialCustomers.Patches
             choice.onChoosen.AddListener(OnQuestChoice);
             controller.AddDialogueChoice(choice);
 
-            // Second option: report back once the thief is dead.
+            // Second option: report back once the informant is dead.
             var handIn = new DialogueController.DialogueChoice();
             handIn.ChoiceText = "He's dealt with.";
             handIn.Enabled = true;
@@ -82,7 +82,7 @@ namespace BetterSpecialCustomers.Patches
 
                 if (save.OfferState == 1)
                 {
-                    line = "Yeah, sure. There's a guy down at the docks who's been giving us some trouble recently. Go take care of him for us.";
+                    line = "Somebody's been feedin' the cops about club business. I've got a name now. Find him, and make sure he never talks again.";
                     BikersQuest.Start(groupId);
                 }
                 else
@@ -104,14 +104,14 @@ namespace BetterSpecialCustomers.Patches
         private static void OnHandIn()
         {
             if (_diesel != null)
-                _diesel.DialogueHandler.ShowWorldspaceDialogue("Good work. The boys will remember this.", 6f);
+                _diesel.DialogueHandler.ShowWorldspaceDialogue("Good. Rats don't get to walk away. The club won't forget this.", 6f);
             BikersQuest.HandIn();
         }
 
         private static bool IsReadyToHandIn()
         {
             var save = BikersQuestSave.Instance;
-            return save != null && save.ThiefKilled && !save.Completed;
+            return save != null && save.TargetKilled && !save.Completed;
         }
 
         // The ask option shows unless a job is currently open (accepted but not handed in).
