@@ -31,5 +31,12 @@ namespace BetterSpecialCustomers
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
         }
+
+        // TEMPORARY: press F9 to list every clothing item in the log (to find the biker clothes). Remove later.
+        public override void OnUpdate()
+        {
+            if (Input.GetKeyDown(KeyCode.F9))
+                BetterSpecialCustomers.Diagnostics.ClothingDump.Run();
+        }
     }
 }
