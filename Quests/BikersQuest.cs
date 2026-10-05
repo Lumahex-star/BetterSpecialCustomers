@@ -117,7 +117,9 @@ namespace BetterSpecialCustomers.Quests
 
         protected override string Title => "Trouble at the Docks";
         protected override string Description => "Diesel Rodd wants a thief at the docks dealt with.";
-        protected override bool AutoBegin => false;
+        // S1API finishes setting a quest up (OnCreated, entries) on the NEXT frame after CreateQuest, so we can't call
+        // Begin() ourselves straight away. We only create this quest when Diesel gives the job, so let it begin itself.
+        protected override bool AutoBegin => true;
 
         protected override void OnCreated()
         {
@@ -133,8 +135,8 @@ namespace BetterSpecialCustomers.Quests
         protected override void OnLoaded()
         {
             base.OnLoaded();
-            // Old finished runs are loaded too; only the open one should be the current quest.
-            if (QuestState.ToString() == "Active") _instance = this;
+            // S1API only reloads quests that were still active, so this is the open job.
+            _instance = this;
             Subscribe();
         }
 
@@ -196,10 +198,8 @@ namespace BetterSpecialCustomers.Quests
                 _instance = QuestManager.CreateQuest<BikersQuest>($"bikers_docks_quest_{run}") as BikersQuest;
             }
             if (_instance == null) { Melon<Core>.Logger.Error("[quest] could not create BikersQuest"); return; }
-            _instance.Begin();
-            if (_instance.QuestEntries.Count > 0) _instance.QuestEntries[0].Begin();
             DocksThief.Refresh();
-            Melon<Core>.Logger.Msg($"[quest] begun, {_instance.QuestEntries.Count} entries");
+            Melon<Core>.Logger.Msg("[quest] created; S1API sets up its entries and begins it on the next frame");
         }
 
         // Called when a customer group leaves. The job is once per visit: when Diesel's group leaves, an open job is
@@ -210,7 +210,7 @@ namespace BetterSpecialCustomers.Quests
             if (save == null) return;
             if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
 
-            if (_instance != null && _instance.QuestState.ToString() == "Active") _instance.Cancel();
+            if (_instance != null && save.Accepted && !save.Completed) _instance.Cancel();
             _instance = null;
             save.OfferState = 0;
             save.Accepted = false;
