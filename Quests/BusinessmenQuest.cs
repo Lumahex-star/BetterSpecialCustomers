@@ -78,7 +78,7 @@ namespace BetterSpecialCustomers.Quests
             base.OnCreated();
             Appearance.Build();
             _instance = this;
-            OnDeath += AuditQuest.Job.OnTargetKilled;
+            OnDeath += AuditQuest.Job.OnObjectiveDone;
             Refresh();
         }
 

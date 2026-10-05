@@ -68,7 +68,7 @@ namespace BetterSpecialCustomers.Quests
             _instance = this;
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
-            OnDeath += BikersQuest.Job.OnTargetKilled;
+            OnDeath += BikersQuest.Job.OnObjectiveDone;
             Refresh();
         }
 

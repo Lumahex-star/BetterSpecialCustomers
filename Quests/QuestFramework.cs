@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using BetterSpecialCustomers.Relationships;
@@ -51,6 +51,7 @@ namespace BetterSpecialCustomers.Quests
         public float RelationshipReward = 0.5f;       // takes effect from the group's next visit
         public float CashReward = 5000f;
         public int XpReward = 100;
+        public Action GrantExtraReward;               // optional: e.g. hand the player items
 
         public Func<JobSaveData> GetSave;             // null until the save has loaded
         public Func<string> PickName;                 // a fresh random target name
@@ -89,6 +90,9 @@ namespace BetterSpecialCustomers.Quests
         }
 
         public JobSaveData Save => _def.GetSave();
+
+        // The open quest, once S1API has created it (null before then, and between jobs).
+        public Quest Quest => _quest;
 
         // Called by the quest class when S1API creates or reloads it.
         public void Attach(Quest quest)
@@ -164,15 +168,17 @@ namespace BetterSpecialCustomers.Quests
             Melon<Core>.Logger.Msg("[quest] created; S1API sets up its entries and begins it on the next frame");
         }
 
-        // Called by the target NPC when its health reaches zero.
-        public void OnTargetKilled()
+        // Called when the job's task is done (the target died, the package arrived): every entry but the last is
+        // completed and the last one, "report back to the leader", begins.
+        public void OnObjectiveDone()
         {
             var save = Save;
             if (_quest == null || save == null || !save.Accepted || save.TargetKilled) return;
             save.TargetKilled = true;
-            if (_quest.QuestEntries.Count > 0) _quest.QuestEntries[0].Complete();
-            if (_quest.QuestEntries.Count > 1) _quest.QuestEntries[1].Begin();
-            Melon<Core>.Logger.Msg("[quest] target killed, report back to the leader");
+            int last = _quest.QuestEntries.Count - 1;
+            for (int i = 0; i < last; i++) _quest.QuestEntries[i].Complete();
+            if (last > 0) _quest.QuestEntries[last].Begin();
+            Melon<Core>.Logger.Msg("[quest] task done, report back to the leader");
         }
 
         // Called from the leader's hand-in dialogue option.
@@ -181,16 +187,18 @@ namespace BetterSpecialCustomers.Quests
             var save = Save;
             if (_quest == null || save == null || !save.TargetKilled || save.Completed) return;
             save.Completed = true;
-            if (_quest.QuestEntries.Count > 1) _quest.QuestEntries[1].Complete();
+            int last = _quest.QuestEntries.Count - 1;
+            if (last > 0) _quest.QuestEntries[last].Complete();
             _quest.Complete();
             _def.RefreshTarget();
         }
 
         private void HandleComplete()
         {
-            Money.ChangeCashBalance(_def.CashReward, true, true);
+            if (_def.CashReward > 0f) Money.ChangeCashBalance(_def.CashReward, true, true);
             LevelManager.AddXP(_def.XpReward);
-            Melon<Core>.Logger.Msg($"[quest] paid ${_def.CashReward} and {_def.XpReward} XP");
+            _def.GrantExtraReward?.Invoke();
+            Melon<Core>.Logger.Msg($"[quest] paid ${_def.CashReward}, {_def.XpReward} XP");
 
             string group = Save?.GroupId;
             if (!string.IsNullOrEmpty(group))

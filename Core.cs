@@ -37,6 +37,15 @@ namespace BetterSpecialCustomers
         {
             if (Input.GetKeyDown(KeyCode.F9))
                 BetterSpecialCustomers.Diagnostics.ClothingDump.Run();
+
+            // About once a second: let the hippies' package job notice the package moving between dead drops.
+            if (Time.unscaledTime >= _nextQuestTick)
+            {
+                _nextQuestTick = Time.unscaledTime + 1f;
+                BetterSpecialCustomers.Quests.HippiesTask.Tick();
+            }
         }
+
+        private float _nextQuestTick;
     }
 }
