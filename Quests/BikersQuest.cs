@@ -105,7 +105,6 @@ namespace BetterSpecialCustomers.Quests
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
             OnDeath += BikersQuest.OnTargetKilled;
-            Schedule.InitializeActions(); // the schedule is switched on/off in Deploy/Park
             Refresh();
         }
 
