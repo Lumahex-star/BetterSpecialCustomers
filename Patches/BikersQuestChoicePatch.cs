@@ -31,6 +31,7 @@ namespace BetterSpecialCustomers.Patches
         public static void Postfix(SpecialCustomerLeader __instance)
         {
             _diesel = __instance;
+            MelonLogger.Msg($"[leader] a group leader was set up: ID='{__instance.ID}' name='{__instance.FullName}'"); // TEMPORARY: to find each leader's id
 
             var controller = __instance.DialogueHandler.GetComponent<DialogueController>();
             if (controller == null || !Added.Add(controller.GetInstanceID())) return;
