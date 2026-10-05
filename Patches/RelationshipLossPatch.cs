@@ -3,7 +3,6 @@ using BetterSpecialCustomers.Diagnostics;
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using UnityEngine;
-using ScheduleOne.Dialogue;
 
 
 #if MONO

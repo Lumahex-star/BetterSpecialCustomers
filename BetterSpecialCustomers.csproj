@@ -947,7 +947,6 @@
 		<Compile Include="Diagnostics\PatchDiagnostics.cs" />
 		<Compile Include="Patches\BikersQuestChoicePatch.cs" />
 		<Compile Include="Patches\BuyLimitFieldSync.cs" />
-		<Compile Include="Patches\LeaderDialogueDump.cs" />
 		<Compile Include="Patches\MaxBuyLimitPatch.cs" />
 		<Compile Include="Patches\RelationshipBuyQuantityPatch.cs" />
 		<Compile Include="Patches\RelationshipGainPatch.cs" />
@@ -957,8 +956,6 @@
 		<Compile Include="Quests\BikersQuest.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
-		<Compile Include="Patches\LeaderDialogueDump.cs" />
-		<Compile Include="Patches\BikersQuestChoicePatch.cs" />
 		<Folder Include="Libs\" />
 		<Folder Include="Assets\" />
 		<!--Uncomment if with assetbundle-->
