@@ -23,6 +23,14 @@ namespace BetterSpecialCustomers.Quests
         [SaveableField("bikers_quest_group")]
         public string GroupId = string.Empty;
 
+        // The thief is dead; Diesel still has to be told.
+        [SaveableField("bikers_quest_thief_killed")]
+        public bool ThiefKilled;
+
+        // Reported back to Diesel, quest finished and rewarded.
+        [SaveableField("bikers_quest_completed")]
+        public bool Completed;
+
         protected override void OnLoaded() { Instance = this; }
     }
 
@@ -67,9 +75,11 @@ namespace BetterSpecialCustomers.Quests
         {
             base.OnCreated();
             _instance = this;
-            var entry = AddEntry("Kill the thief at the docks", DocksThief.DocksPosition);
-            entry.SetPOIToNPC<DocksThief>(); // make the marker follow him (returns false if he isn't found)
+            var kill = AddEntry("Kill the thief at the docks", DocksThief.DocksPosition);
+            kill.SetPOIToNPC<DocksThief>(); // make the marker follow him (returns false if he isn't found)
+            AddEntry("Tell Diesel the thief is dealt with");
             Subscribe();
+            Melon<Core>.Logger.Msg("[quest] BikersQuest created");
         }
 
         protected override void OnLoaded()
@@ -89,8 +99,21 @@ namespace BetterSpecialCustomers.Quests
         // Called by DocksThief when its health reaches zero.
         public static void OnThiefKilled()
         {
-            if (_instance == null) return;
+            var save = BikersQuestSave.Instance;
+            if (_instance == null || save == null || !save.Accepted || save.ThiefKilled) return;
+            save.ThiefKilled = true;
             if (_instance.QuestEntries.Count > 0) _instance.QuestEntries[0].Complete();
+            if (_instance.QuestEntries.Count > 1) _instance.QuestEntries[1].Begin();
+            Melon<Core>.Logger.Msg("[quest] thief killed, return to Diesel");
+        }
+
+        // Called from the "He's dealt with." dialogue choice.
+        public static void HandIn()
+        {
+            var save = BikersQuestSave.Instance;
+            if (_instance == null || save == null || !save.ThiefKilled || save.Completed) return;
+            save.Completed = true;
+            if (_instance.QuestEntries.Count > 1) _instance.QuestEntries[1].Complete();
             _instance.Complete();
         }
 
@@ -111,8 +134,15 @@ namespace BetterSpecialCustomers.Quests
                 BikersQuestSave.Instance.Accepted = true;
                 BikersQuestSave.Instance.GroupId = groupId ?? string.Empty;
             }
-            if (_instance == null) QuestManager.CreateQuest<BikersQuest>();
-            _instance?.Begin();
+            if (_instance == null)
+            {
+                // Fixed id so the quest is the same one after a reload.
+                _instance = QuestManager.CreateQuest<BikersQuest>("bikers_docks_quest") as BikersQuest;
+            }
+            if (_instance == null) { Melon<Core>.Logger.Error("[quest] could not create BikersQuest"); return; }
+            _instance.Begin();
+            if (_instance.QuestEntries.Count > 0) _instance.QuestEntries[0].Begin();
+            Melon<Core>.Logger.Msg($"[quest] begun, {_instance.QuestEntries.Count} entries");
         }
     }
 }

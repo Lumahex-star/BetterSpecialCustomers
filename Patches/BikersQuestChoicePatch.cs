@@ -46,7 +46,15 @@ namespace BetterSpecialCustomers.Patches
 
             choice.onChoosen.AddListener(OnQuestChoice);
             controller.AddDialogueChoice(choice);
-            MelonLogger.Msg("[quest] added the Diesel quest choice");
+
+            // Second option: report back once the thief is dead.
+            var handIn = new DialogueController.DialogueChoice();
+            handIn.ChoiceText = "He's dealt with.";
+            handIn.Enabled = true;
+            handIn.shouldShowCheck = enabled => enabled && __instance.ID == DieselId && IsReadyToHandIn();
+            handIn.onChoosen.AddListener(OnHandIn);
+            controller.AddDialogueChoice(handIn);
+            MelonLogger.Msg("[quest] added the Diesel quest choices");
         }
 
         private static void OnQuestChoice()
@@ -64,6 +72,19 @@ namespace BetterSpecialCustomers.Patches
             // Starts the quest and remembers it was accepted, so the option disappears (and stays gone after a reload).
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             BikersQuest.Start(group?.GroupId);
+        }
+
+        private static void OnHandIn()
+        {
+            if (_diesel != null)
+                _diesel.DialogueHandler.ShowWorldspaceDialogue("Good work. The boys will remember this.", 6f);
+            BikersQuest.HandIn();
+        }
+
+        private static bool IsReadyToHandIn()
+        {
+            var save = BikersQuestSave.Instance;
+            return save != null && save.ThiefKilled && !save.Completed;
         }
 
         private static bool IsQuestAccepted()
