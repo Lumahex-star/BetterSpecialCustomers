@@ -30,7 +30,6 @@ namespace BetterSpecialCustomers
             // Patch each class separately (instead of PatchAll) so one failing patch can't stop the others.
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
-            BetterSpecialCustomers.Quests.BikersQuest.Register();
         }
 
     }
