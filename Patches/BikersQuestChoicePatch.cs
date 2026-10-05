@@ -1,13 +1,18 @@
-﻿using HarmonyLib;
+﻿using System.Collections.Generic;
+using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
 using UnityEngine.Events;
 using BetterSpecialCustomers.Quests;
 #if MONO
+using ScheduleOne.DevUtilities;
 using ScheduleOne.Dialogue;
+using ScheduleOne.SpecialCustomers;
 using ScheduleOne.NPCs;
 #elif IL2CPP
+using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Dialogue;
+using Il2CppScheduleOne.SpecialCustomers;
 using Il2CppScheduleOne.NPCs;
 #endif
 
@@ -56,8 +61,9 @@ namespace BetterSpecialCustomers.Patches
             var rend = _diesel.DialogueHandler.WorldspaceRend;
             MelonLogger.Msg($"[quest] after: shown='{rend.ShownText}' visible={rend.IsVisible}");
 
-            // Remember that the quest was accepted, so the dialogue option disappears (and stays gone after a reload).
-            if (BikersQuestSave.Instance != null) BikersQuestSave.Instance.Accepted = true;
+            // Starts the quest and remembers it was accepted, so the option disappears (and stays gone after a reload).
+            var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
+            BikersQuest.Start(group?.GroupId);
         }
 
         private static bool IsQuestAccepted()
