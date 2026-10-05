@@ -1,4 +1,5 @@
 using HarmonyLib;
+using MelonLoader;
 using BetterSpecialCustomers.Quests;
 #if MONO
 using ScheduleOne.NPCs;
@@ -32,6 +33,11 @@ namespace BetterSpecialCustomers.Patches
             },
         };
 
-        public static void Postfix(SpecialCustomerLeader __instance) => Dialogue.Register(__instance);
+        public static void Postfix(SpecialCustomerLeader __instance)
+        {
+            // TEMPORARY: logs every group leader's id (this patch runs for all of them) so each group's quest can be set up.
+            MelonLogger.Msg($"[leader] a group leader was set up: ID='{__instance.ID}' name='{__instance.FullName}'");
+            Dialogue.Register(__instance);
+        }
     }
 }
