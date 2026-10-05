@@ -3,6 +3,8 @@ using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Internal.Abstraction;   // Saveable
+using S1API.Leveling;               // LevelManager
+using S1API.Money;                  // Money
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
 using UnityEngine;
@@ -31,7 +33,106 @@ namespace BetterSpecialCustomers.Quests
         [SaveableField("bikers_quest_completed")]
         public bool Completed;
 
-        protected override void OnLoaded() { Instance = this; }
+        // This visit's roll for whether Diesel has a job: 0 = not asked yet, 1 = he has one, 2 = nothing this time.
+        [SaveableField("bikers_quest_offer")]
+        public int OfferState;
+
+        // How many times the quest has been started. Gives each run its own quest id.
+        [SaveableField("bikers_quest_runs")]
+        public int Runs;
+
+        protected override void OnLoaded()
+        {
+            Instance = this;
+            DocksThief.Refresh(); // the thief may have been created before the save finished loading
+        }
+    }
+
+    // The target. S1API creates this NPC when the world loads, and there is no way to spawn or remove it later,
+    // so instead it is "parked" far away and made invincible until the quest needs him, then moved to the docks.
+    // PLACEHOLDER: ParkedPosition is a guess; if he falls out of the world or gets stuck, pick a safer spot.
+    public sealed class DocksThief : NPC
+    {
+        public static readonly Vector3 DocksPosition = new Vector3(-78.2f, -2.3f, -33.2f);
+        public static readonly Vector3 ParkedPosition = new Vector3(0f, -200f, 0f);
+
+        private static DocksThief _instance;
+
+        public override bool IsPhysical => true;
+
+        public DocksThief() : base() { }
+
+        protected override void ConfigurePrefab(NPCPrefabBuilder builder)
+        {
+            builder.WithIdentity("bikers_docks_thief", "Docks", "Thief")
+                   .WithSpawnPosition(ParkedPosition);
+        }
+
+        protected override void OnCreated()
+        {
+            base.OnCreated();
+            Appearance.Build();
+            _instance = this;
+
+            // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
+            OnDeath += BikersQuest.OnThiefKilled;
+            Refresh();
+        }
+
+        // Puts him at the docks while the job is open and he is still alive, otherwise parks him.
+        public static void Refresh()
+        {
+            if (_instance == null) return;
+            var save = BikersQuestSave.Instance;
+            bool wanted = save != null && save.Accepted && !save.ThiefKilled;
+            if (wanted) _instance.Deploy(); else _instance.Park();
+        }
+
+        private void Deploy()
+        {
+            if (IsDead) Revive();
+            Heal((int)MaxHealth);
+            IsInvincible = false;
+            if ((Position - DocksPosition).sqrMagnitude > 1f) Position = DocksPosition;
+        }
+
+        private void Park()
+        {
+            IsInvincible = true;
+            if ((Position - ParkedPosition).sqrMagnitude > 1f) Position = ParkedPosition;
+        }
+    }
+
+    public class BikersQuestSave : Saveable
+    {
+        public static BikersQuestSave Instance { get; private set; }
+
+        public BikersQuestSave() { Instance = this; }
+
+        [SaveableField("bikers_quest_accepted")]
+        public bool Accepted;
+
+        // The group the quest belongs to, so the reward goes to the right group even after a reload.
+        [SaveableField("bikers_quest_group")]
+        public string GroupId = string.Empty;
+
+        // The thief is dead; Diesel still has to be told.
+        [SaveableField("bikers_quest_thief_killed")]
+        public bool ThiefKilled;
+
+        // Reported back to Diesel, quest finished and rewarded.
+        [SaveableField("bikers_quest_completed")]
+        public bool Completed;
+
+        // How many times the quest has been started. Gives each run its own quest id.
+        [SaveableField("bikers_quest_runs")]
+        public int Runs;
+
+        protected override void OnLoaded()
+        {
+            Instance = this;
+            DocksThief.Refresh(); // the thief may have been created before the save finished loading
+        }
     }
 
     // The target. S1API NPCs are created from their class, so this one always exists in the world.
@@ -62,8 +163,13 @@ namespace BetterSpecialCustomers.Quests
 
     public class BikersQuest : Quest
     {
-        // Reward for finishing the job, applied to the group's relationship (it takes effect next visit).
-        private const float RelationshipReward = 1f;
+        // Chance (0 to 1) that Diesel has a job on a given visit.
+        public const float OfferChance = 0.5f;
+
+        // Rewards for finishing the job. The relationship bonus takes effect from the group's next visit.
+        private const float RelationshipReward = 0.5f;
+        private const float CashReward = 5000f;
+        private const int XpReward = 100;
 
         private static BikersQuest _instance;
 
@@ -85,7 +191,8 @@ namespace BetterSpecialCustomers.Quests
         protected override void OnLoaded()
         {
             base.OnLoaded();
-            _instance = this;
+            // Old finished runs are loaded too; only the open one should be the current quest.
+            if (QuestState == QuestState.Active) _instance = this;
             Subscribe();
         }
 
@@ -115,10 +222,15 @@ namespace BetterSpecialCustomers.Quests
             save.Completed = true;
             if (_instance.QuestEntries.Count > 1) _instance.QuestEntries[1].Complete();
             _instance.Complete();
+            DocksThief.Refresh();
         }
 
         private void HandleComplete()
         {
+            Money.ChangeCashBalance(CashReward, true, true);
+            LevelManager.AddXP(XpReward);
+            Melon<Core>.Logger.Msg($"[quest] paid ${CashReward} and {XpReward} XP");
+
             string group = BikersQuestSave.Instance?.GroupId;
             if (!string.IsNullOrEmpty(group))
                 GroupRelationships.Reward(group, RelationshipReward, "completed Diesel's docks job");
@@ -134,15 +246,36 @@ namespace BetterSpecialCustomers.Quests
                 BikersQuestSave.Instance.Accepted = true;
                 BikersQuestSave.Instance.GroupId = groupId ?? string.Empty;
             }
+            if (BikersQuestSave.Instance != null) BikersQuestSave.Instance.Runs++;
             if (_instance == null)
             {
-                // Fixed id so the quest is the same one after a reload.
-                _instance = QuestManager.CreateQuest<BikersQuest>("bikers_docks_quest") as BikersQuest;
+                // Each run gets its own id, so a new run never collides with an earlier finished one.
+                int run = BikersQuestSave.Instance?.Runs ?? 0;
+                _instance = QuestManager.CreateQuest<BikersQuest>($"bikers_docks_quest_{run}") as BikersQuest;
             }
             if (_instance == null) { Melon<Core>.Logger.Error("[quest] could not create BikersQuest"); return; }
             _instance.Begin();
             if (_instance.QuestEntries.Count > 0) _instance.QuestEntries[0].Begin();
+            DocksThief.Refresh();
             Melon<Core>.Logger.Msg($"[quest] begun, {_instance.QuestEntries.Count} entries");
+        }
+
+        // Called when a customer group leaves. The job is once per visit: when Diesel's group leaves, an open job is
+        // dropped and the quest can be taken again on their next visit.
+        public static void ResetForNewVisit(string groupId)
+        {
+            var save = BikersQuestSave.Instance;
+            if (save == null) return;
+            if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
+
+            if (_instance != null && _instance.QuestState == QuestState.Active) _instance.Cancel();
+            _instance = null;
+            save.OfferState = 0;
+            save.Accepted = false;
+            save.ThiefKilled = false;
+            save.Completed = false;
+            DocksThief.Refresh();
+            Melon<Core>.Logger.Msg("[quest] group left, the job can be taken again next visit");
         }
     }
 }

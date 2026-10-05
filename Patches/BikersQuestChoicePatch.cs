@@ -41,8 +41,8 @@ namespace BetterSpecialCustomers.Patches
 
             // Asked every time the menu opens. The leader's ID changes with each group,
             // so this shows the option only while Diesel is the one in town.
-            // It is also hidden once the quest has been accepted (this flag is saved with the game).
-            choice.shouldShowCheck = enabled => enabled && __instance.ID == DieselId && !IsQuestAccepted();
+            // It stays visible even when he has no job; he just says so. It is only hidden while a job is open.
+            choice.shouldShowCheck = enabled => enabled && __instance.ID == DieselId && CanAsk();
 
             choice.onChoosen.AddListener(OnQuestChoice);
             controller.AddDialogueChoice(choice);
@@ -63,16 +63,43 @@ namespace BetterSpecialCustomers.Patches
 
             if (_diesel == null) { MelonLogger.Msg("[quest] _diesel is EMPTY"); return; }
 
-            MelonLogger.Msg("[quest] calling ShowWorldspaceDialogue");
-            _diesel.DialogueHandler.ShowWorldspaceDialogue("Yeah, sure. There's a guy down at the docks who's been giving us some trouble recently. Go take care of him for us.", 7f);
-
-            var rend = _diesel.DialogueHandler.WorldspaceRend;
-            MelonLogger.Msg($"[quest] after: shown='{rend.ShownText}' visible={rend.IsVisible}");
-
-            // Starts the quest and remembers it was accepted, so the option disappears (and stays gone after a reload).
+            var save = BikersQuestSave.Instance;
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
-            BikersQuest.Start(group?.GroupId);
+            string groupId = group?.GroupId;
+            if (save == null) return;
+            if (!string.IsNullOrEmpty(groupId)) save.GroupId = groupId; // lets the visit reset find this group
+
+            string line;
+            if (save.Completed)
+            {
+                line = "You already did right by us this run. Come back when we roll through again.";
+            }
+            else
+            {
+                // Roll once per visit and remember it, so asking again can't re-roll.
+                if (save.OfferState == 0)
+                    save.OfferState = Random.value < BikersQuest.OfferChance ? 1 : 2;
+
+                if (save.OfferState == 1)
+                {
+                    line = "Yeah, sure. There's a guy down at the docks who's been giving us some trouble recently. Go take care of him for us.";
+                    BikersQuest.Start(groupId);
+                }
+                else
+                {
+                    line = NoJobLines[Random.Range(0, NoJobLines.Length)];
+                }
+            }
+
+            _diesel.DialogueHandler.ShowWorldspaceDialogue(line, 7f);
         }
+
+        private static readonly string[] NoJobLines =
+        {
+            "Not this time, prospect. Road's quiet. Come find me when it ain't.",
+            "Nothin' right now. The club'll let you know when we need a hand.",
+            "Ain't got nothin' for you today. Go count your money.",
+        };
 
         private static void OnHandIn()
         {
@@ -87,9 +114,11 @@ namespace BetterSpecialCustomers.Patches
             return save != null && save.ThiefKilled && !save.Completed;
         }
 
-        private static bool IsQuestAccepted()
+        // The ask option shows unless a job is currently open (accepted but not handed in).
+        private static bool CanAsk()
         {
-            return BikersQuestSave.Instance != null && BikersQuestSave.Instance.Accepted;
+            var save = BikersQuestSave.Instance;
+            return save == null || !save.Accepted || save.Completed;
         }
     }
 }
