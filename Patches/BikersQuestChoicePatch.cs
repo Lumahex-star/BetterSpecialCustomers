@@ -2,6 +2,8 @@
 using MelonLoader;
 using UnityEngine;
 using UnityEngine.Events;
+using BetterSpecialCustomers.Quests;
+
 #if MONO
 using ScheduleOne.Dialogue;
 using ScheduleOne.NPCs;
@@ -17,6 +19,8 @@ namespace BetterSpecialCustomers.Patches
     {
         private const string DieselId = "diesel_rodd";
         private static SpecialCustomerLeader _diesel;
+
+        public bool BikerQuestAccepted = false;
 
         // The leader (and its DialogueController) is one object reused for every group,
         // so add our choice only once.
