@@ -103,64 +103,6 @@ namespace BetterSpecialCustomers.Quests
         }
     }
 
-    public class BikersQuestSave : Saveable
-    {
-        public static BikersQuestSave Instance { get; private set; }
-
-        public BikersQuestSave() { Instance = this; }
-
-        [SaveableField("bikers_quest_accepted")]
-        public bool Accepted;
-
-        // The group the quest belongs to, so the reward goes to the right group even after a reload.
-        [SaveableField("bikers_quest_group")]
-        public string GroupId = string.Empty;
-
-        // The thief is dead; Diesel still has to be told.
-        [SaveableField("bikers_quest_thief_killed")]
-        public bool ThiefKilled;
-
-        // Reported back to Diesel, quest finished and rewarded.
-        [SaveableField("bikers_quest_completed")]
-        public bool Completed;
-
-        // How many times the quest has been started. Gives each run its own quest id.
-        [SaveableField("bikers_quest_runs")]
-        public int Runs;
-
-        protected override void OnLoaded()
-        {
-            Instance = this;
-            DocksThief.Refresh(); // the thief may have been created before the save finished loading
-        }
-    }
-
-    // The target. S1API NPCs are created from their class, so this one always exists in the world.
-    
-    public sealed class DocksThief : NPC
-    {
-        public static readonly Vector3 DocksPosition = new Vector3(-78.2f, -2.3f, -33.2f);
-
-        public override bool IsPhysical => true;
-
-        public DocksThief() : base() { }
-
-        protected override void ConfigurePrefab(NPCPrefabBuilder builder)
-        {
-            builder.WithIdentity("bikers_docks_thief", "Docks", "Thief")
-                   .WithSpawnPosition(DocksPosition);
-        }
-
-        protected override void OnCreated()
-        {
-            base.OnCreated();
-            Appearance.Build();
-
-            // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
-            OnDeath += BikersQuest.OnThiefKilled;
-        }
-    }
-
     public class BikersQuest : Quest
     {
         // Chance (0 to 1) that Diesel has a job on a given visit.
@@ -192,7 +134,7 @@ namespace BetterSpecialCustomers.Quests
         {
             base.OnLoaded();
             // Old finished runs are loaded too; only the open one should be the current quest.
-            if (QuestState == QuestState.Active) _instance = this;
+            if (QuestState.ToString() == "Active") _instance = this;
             Subscribe();
         }
 
@@ -268,7 +210,7 @@ namespace BetterSpecialCustomers.Quests
             if (save == null) return;
             if (!string.Equals(save.GroupId, groupId, StringComparison.OrdinalIgnoreCase)) return;
 
-            if (_instance != null && _instance.QuestState == QuestState.Active) _instance.Cancel();
+            if (_instance != null && _instance.QuestState.ToString() == "Active") _instance.Cancel();
             _instance = null;
             save.OfferState = 0;
             save.Accepted = false;

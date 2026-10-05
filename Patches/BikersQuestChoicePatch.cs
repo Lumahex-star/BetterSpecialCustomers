@@ -78,7 +78,7 @@ namespace BetterSpecialCustomers.Patches
             {
                 // Roll once per visit and remember it, so asking again can't re-roll.
                 if (save.OfferState == 0)
-                    save.OfferState = Random.value < BikersQuest.OfferChance ? 1 : 2;
+                    save.OfferState = UnityEngine.Random.value < BikersQuest.OfferChance ? 1 : 2;
 
                 if (save.OfferState == 1)
                 {
@@ -87,7 +87,7 @@ namespace BetterSpecialCustomers.Patches
                 }
                 else
                 {
-                    line = NoJobLines[Random.Range(0, NoJobLines.Length)];
+                    line = NoJobLines[UnityEngine.Random.Range(0, NoJobLines.Length)];
                 }
             }
 
