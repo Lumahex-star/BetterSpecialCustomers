@@ -2,8 +2,13 @@
 using BetterSpecialCustomers.Relationships;
 using MelonLoader;
 using S1API.Entities;               // NPC
+using S1API.Entities.Appearances.AccessoryFields;   // Chest, Feet, Neck
+using S1API.Entities.Appearances.BodyLayerFields;   // Shirts, Pants
+using S1API.Entities.Appearances.CustomizationFields; // SkinColor, HairStyle, ...
+using S1API.Entities.Appearances.FaceLayerFields;   // Face, FacialHair
 using S1API.Internal.Abstraction;   // Saveable
 using S1API.Leveling;               // LevelManager
+using S1API.Map;                    // Building
 using S1API.Money;                  // Money
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
@@ -87,7 +92,9 @@ namespace BetterSpecialCustomers.Quests
         protected override void ConfigurePrefab(NPCPrefabBuilder builder)
         {
             builder.WithIdentity("bikers_informant", "Informant", string.Empty)
-                   .WithSpawnPosition(ParkedPosition);
+                   .WithSpawnPosition(ParkedPosition)
+                   // Once he has come out (summoned by a knock) he walks back in and stays in.
+                   .WithSchedule(plan => plan.StayInBuilding(Building.Get<S1API.Map.Buildings.ThePissHut>(), 0, 1439));
         }
 
         protected override void OnCreated()
@@ -98,6 +105,7 @@ namespace BetterSpecialCustomers.Quests
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
             OnDeath += BikersQuest.OnTargetKilled;
+            Schedule.InitializeActions(); // the schedule is switched on/off in Deploy/Park
             Refresh();
         }
 
@@ -122,20 +130,77 @@ namespace BetterSpecialCustomers.Quests
             if (save != null && _lookAppliedForRun != save.Runs)
             {
                 _lookAppliedForRun = save.Runs;
-                Appearance.GenerateRandomAppearance(); // a different face and clothes each run
+                ApplyBikerLook(); // a different face each run, but always a believable biker
             }
 
             if (IsDead) Revive();
             Heal((int)MaxHealth);
             IsInvincible = false;
             EnterHideout();
+            Schedule.Enable(); // after a summon he returns to the hut by himself
         }
 
         private void Park()
         {
+            Schedule.Disable(); // a parked NPC has no navmesh to walk on
             LeaveHideout();
             IsInvincible = true;
             if ((Position - ParkedPosition).sqrMagnitude > 1f) Position = ParkedPosition;
+        }
+
+        // ---- Look ----------------------------------------------------------------------------------------------
+        // Replaces S1API's fully random look (random skin and clothing colours looked wrong) with a controlled one:
+        // a natural skin tone and hair colour, a plain tee, jeans, a leather vest and boots.
+
+        private static readonly Color32[] SkinTones =
+        {
+            new Color32(236, 200, 170, 255), new Color32(224, 172, 138, 255), new Color32(198, 140, 100, 255),
+            new Color32(168, 112, 78, 255), new Color32(130, 84, 58, 255),
+        };
+        private static readonly Color32[] HairColors =
+        {
+            new Color32(30, 22, 18, 255), new Color32(60, 40, 28, 255), new Color32(95, 65, 40, 255),
+            new Color32(150, 120, 80, 255), new Color32(120, 120, 120, 255),
+        };
+        private static readonly string[] HairStyles =
+        {
+            HairStyle.BuzzCut, HairStyle.CloseBuzzCut, HairStyle.Balding, HairStyle.Receding,
+            HairStyle.LongSlicked, HairStyle.ShoulderLength, HairStyle.Peaked,
+        };
+        private static readonly Color32[] ShirtColors =
+        {
+            new Color32(25, 25, 25, 255), new Color32(60, 60, 60, 255), new Color32(110, 25, 25, 255), new Color32(90, 90, 90, 255),
+        };
+        private static readonly Color32[] JeansColors =
+        {
+            new Color32(30, 38, 60, 255), new Color32(20, 20, 24, 255), new Color32(55, 65, 90, 255),
+        };
+
+        private static T Pick<T>(T[] items) => items[UnityEngine.Random.Range(0, items.Length)];
+
+        private void ApplyBikerLook()
+        {
+            Color hair = Pick(HairColors);
+
+            Appearance.Set<Gender>(0f);
+            Appearance.Set<Height>(UnityEngine.Random.Range(0.95f, 1.05f));
+            Appearance.Set<Weight>(UnityEngine.Random.Range(0.45f, 0.75f));
+            Appearance.Set<SkinColor>((Color)Pick(SkinTones));
+            Appearance.Set<EyeBallTint>(Color.white);
+            Appearance.Set<HairColor>(hair);
+            Appearance.Set<HairStyle>(Pick(HairStyles));
+
+            Color featureColor = new Color(0.15f, 0.1f, 0.1f);
+            Appearance.WithFaceLayer<Face>(UnityEngine.Random.value < 0.5f ? Face.Neutral : Face.SlightFrown, featureColor);
+            if (UnityEngine.Random.value < 0.6f)
+                Appearance.WithFaceLayer<FacialHair>(UnityEngine.Random.value < 0.5f ? FacialHair.Stubble : FacialHair.Goatee, hair);
+
+            Appearance.WithBodyLayer<Shirts>(Shirts.TShirt, (Color)Pick(ShirtColors));
+            Appearance.WithBodyLayer<Pants>(Pants.Jeans, (Color)Pick(JeansColors));
+            Appearance.WithAccessoryLayer<Chest>(Chest.OpenVest, new Color(0.12f, 0.09f, 0.07f)); // the leather "cut"
+            Appearance.WithAccessoryLayer<Feet>(Feet.CombatBoots, new Color(0.1f, 0.1f, 0.1f));
+            if (UnityEngine.Random.value < 0.4f)
+                Appearance.WithAccessoryLayer<Neck>(Neck.GoldChain, Color.white);
         }
 
         // ---- Hiding in a building ----------------------------------------------------------------------------
