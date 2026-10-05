@@ -2,6 +2,7 @@
 using MelonLoader;
 using UnityEngine;
 using UnityEngine.Events;
+using BetterSpecialCustomers.Quests;
 #if MONO
 using ScheduleOne.Dialogue;
 using ScheduleOne.NPCs;
@@ -35,7 +36,8 @@ namespace BetterSpecialCustomers.Patches
 
             // Asked every time the menu opens. The leader's ID changes with each group,
             // so this shows the option only while Diesel is the one in town.
-            choice.shouldShowCheck = enabled => enabled && __instance.ID == DieselId;
+            // It is also hidden once the quest has been accepted (this flag is saved with the game).
+            choice.shouldShowCheck = enabled => enabled && __instance.ID == DieselId && !IsQuestAccepted();
 
             choice.onChoosen.AddListener(OnQuestChoice);
             controller.AddDialogueChoice(choice);
@@ -54,6 +56,13 @@ namespace BetterSpecialCustomers.Patches
             var rend = _diesel.DialogueHandler.WorldspaceRend;
             MelonLogger.Msg($"[quest] after: shown='{rend.ShownText}' visible={rend.IsVisible}");
 
+            // Remember that the quest was accepted, so the dialogue option disappears (and stays gone after a reload).
+            if (BikersQuestSave.Instance != null) BikersQuestSave.Instance.Accepted = true;
+        }
+
+        private static bool IsQuestAccepted()
+        {
+            return BikersQuestSave.Instance != null && BikersQuestSave.Instance.Accepted;
         }
     }
 }
