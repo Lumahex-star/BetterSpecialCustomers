@@ -39,7 +39,7 @@ The bikers' and businessmen's jobs involve violence against an NPC. The target i
 
 - Schedule I
 - [MelonLoader](https://melonwiki.xyz/)
-- [S1API](https://github.com/ifBars/S1API) (used by the quests). Use a recent version, and **only one copy**. Having two copies of S1API in your `Mods` folder breaks custom NPCs.
+- [S1API](https://github.com/ifBars/S1API) (used by the quests). You must use the latest BETA RELEASE of S1API.
 
 ## Installation
 
