@@ -1,0 +1,64 @@
+[size=5][b]Better Special Customers[/b][/size]
+
+Make the Special Customer groups worth your time. They buy far more, they remember how you treat them, and each group's leader now has a job for you.
+
+[quote][b]AI disclosure:[/b] A large part of this mod was produced with AI. The code, the quest and dialogue text, and this description were written largely with Claude, Anthropic's AI assistant, working from my design decisions. I (Lumahex) chose what the mod should do, directed the work and tested it in the game, but I did not write most of the code by hand. Please keep that in mind when you report problems, and see [b]Known issues[/b] below.[/quote]
+
+[line]
+
+[size=4][b]What it does[/b][/size]
+
+[size=3][b]Higher buy limits[/b][/size]
+Vanilla groups stop buying at 120 units, and the game's own formula already reaches that at the top rank, so higher ranks did nothing. This mod replaces it with a straight line from each group's normal starting amount up to [b]200 units at Kingpin[/b].
+
+[size=3][b]Relationships[/b][/size]
+Every Special Customer group now has its own relationship with you, from 0 to 5, using the same level names as the game's own relationships (Hostile, Unfriendly, Neutral, Friendly, Loyal).
+[list]
+[*][b]It changes how much they buy.[/b] The group's limit is multiplied by [b]x0.5[/b] at relationship 0, [b]x1.0[/b] at 2.5 and [b]x1.5[/b] at 5. Every group starts at 2.5, so a fresh game plays like vanilla until you start building relationships.
+[*][b]You earn it by selling.[/b] Sell a group at least [b]75% of their limit[/b] during a visit and the relationship goes up by [b]0.5[/b]. It can only rise once per visit, and it takes effect on their [b]next[/b] visit.
+[*][b]Hurting a group costs you.[/b] Attacking, aiming at or killing their customers, or failing a pickpocket on them, lowers the relationship. Each action has a short cooldown, so one fight doesn't wipe it out.
+[*][b]It's saved with your game,[/b] per group. If you remove the mod, your save still loads.
+[/list]
+At the top rank and top relationship a group can buy up to [b]300 units[/b].
+
+[size=3][b]Quests from the group leaders[/b][/size]
+Open a leader's dialogue and ask for work. Each visit there is a [b]50% chance[/b] they have a job (decided once per visit). Finishing a job pays its reward and adds [b]+0.5[/b] to your relationship with the group. Each job can be done once per visit, and an unfinished job is dropped when the group leaves.
+[list]
+[*][b]Bikers (Diesel Rodd): "Loose Lips".[/b] A club informant is hiding in The Piss Hut. Knock on the door to bring him out, then deal with him. [i]Reward: $5,000 and 100 XP.[/i]
+[*][b]Businessmen (Johnny Smith): "The Audit".[/b] An auditor follows a daily routine around town. Find him and deal with him. [i]Reward: $5,000 and 100 XP.[/i]
+[*][b]Hippies (Krystal Bird): "Special Delivery".[/b] Carry a package from one dead drop to another. [i]Reward: grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, 1 PGR, 1 Fertilizer) and 100 XP.[/i]
+[*][b]Party Bus (Chad Chaddington): "Spread the Word".[/b] Invite 5 townspeople to the Party Bus. Some will say no. [i]Reward: $2,500, 5 Energy Drinks and 100 XP.[/i]
+[/list]
+The bikers' and businessmen's jobs involve violence against an NPC. The target is a new character made for the job, with a random name and look each time.
+
+[line]
+
+[size=4][b]Requirements[/b][/size]
+[list]
+[*]Schedule I
+[*][url=https://melonwiki.xyz/]MelonLoader[/url]
+[*][url=https://github.com/ifBars/S1API]S1API[/url] (used by the quests). Use a recent version, and [b]only one copy[/b]. Having two copies of S1API in your Mods folder breaks custom NPCs.
+[/list]
+
+[size=4][b]Installation[/b][/size]
+[list=1]
+[*]Install MelonLoader for Schedule I if you haven't already.
+[*]Install S1API for your version of the game (Mono or IL2CPP).
+[*]Put the mod's .dll in your game's [b]Mods[/b] folder: [b]BetterSpecialCustomers_Mono.dll[/b] for the Mono version, or [b]BetterSpecialCustomers_IL2Cpp.dll[/b] for the IL2CPP version.
+[*]Start the game.
+[/list]
+
+[size=4][b]Compatibility and known issues[/b][/size]
+[list]
+[*][b]Both builds exist, but the Mono build has had the most testing.[/b] The IL2CPP build is newer and less tested.
+[*][b]Multiplayer:[/b] relationships are tracked by the host. Other players' screens (for example the arrival popup) may show the normal number without the relationship bonus. Quest XP is awarded by the host.
+[*][b]Quests are new.[/b] Some quest NPC outfits use items that may not exist in every game version. A missing item is skipped and logged instead of crashing.
+[*][b]There is no config file yet.[/b] The numbers (the 200 cap, the relationship range, rewards) are set in the code. If you want something adjustable, tell me.
+[/list]
+
+[size=4][b]Reporting problems[/b][/size]
+Please include your [b]MelonLoader/Latest.log[/b] and say whether you use the Mono or IL2CPP version. Lines starting with [b][BetterSpecialCustomers][/b] and [b][quest][/b] are the useful ones.
+
+[size=4][b]Credits[/b][/size]
+Made by Lumahex, with a lot of help from Claude (Anthropic).
+Built on [url=https://melonwiki.xyz/]MelonLoader[/url], [url=https://github.com/pardeike/Harmony]Harmony[/url] and [url=https://github.com/ifBars/S1API]S1API[/url] by ifBars.
