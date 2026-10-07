@@ -945,7 +945,14 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="Diagnostics\PatchDiagnostics.cs" />
+		<Compile Include="Patches\BikersQuestChoicePatch.cs" />
+		<Compile Include="Patches\BusinessmenQuestChoicePatch.cs" />
 		<Compile Include="Patches\BuyLimitFieldSync.cs" />
+		<Compile Include="Patches\DialogueChoiceUtil.cs" />
+		<Compile Include="Patches\HippiesQuestChoicePatch.cs" />
+		<Compile Include="Patches\JobDialogue.cs" />
+		<Compile Include="Patches\PartyBusQuestChoicePatch.cs" />
+		<Compile Include="Patches\PartyInvitePatch.cs" />
 		<Compile Include="Patches\MaxBuyLimitPatch.cs" />
 		<Compile Include="Patches\RelationshipBuyQuantityPatch.cs" />
 		<Compile Include="Patches\RelationshipGainPatch.cs" />
@@ -953,6 +960,10 @@
 		<Compile Include="Patches\RelationshipPersistencePatches.cs" />
 		<Compile Include="Patches\RelationshipVisitPatches.cs" />
 		<Compile Include="Quests\BikersQuest.cs" />
+		<Compile Include="Quests\BusinessmenQuest.cs" />
+		<Compile Include="Quests\HippiesQuest.cs" />
+		<Compile Include="Quests\PartyBusQuest.cs" />
+		<Compile Include="Quests\QuestFramework.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
 		<Folder Include="Libs\" />

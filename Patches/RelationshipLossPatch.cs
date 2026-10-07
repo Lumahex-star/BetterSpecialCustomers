@@ -101,7 +101,7 @@ namespace BetterSpecialCustomers.Patches
             if (group == null) return;
 
             _lastAimTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 0.25f, "aimed weapom");
+            GroupRelationships.Penalize(group.GroupId, 0.25f, "aimed weapon");
         }
         private static void OnPickpocketFailed(Player thief)
         {

@@ -148,6 +148,15 @@ public static class GroupRelationships
         Melon<Core>.Logger.Msg($"[{groupId}] relationship {before:0.00} -> {state.Current:0.00} ({reason})");
     }
 
+    // Immediate bonus (e.g. a completed quest). Like a penalty it changes Current only; it applies from the next visit.
+    public static void Reward(string groupId, float amount, string reason)
+    {
+        State state = GetState(groupId);
+        float before = state.Current;
+        state.Current = Clamp(before + amount);
+        Melon<Core>.Logger.Msg($"[{groupId}] relationship {before:0.00} -> {state.Current:0.00} ({reason})");
+    }
+
     // ---- Persistence -------------------------------------------------------------------------------
     // We store the state INSIDE the game's own SpecialCustomers.json as an extra property:
     //

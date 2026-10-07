@@ -27,14 +27,17 @@ namespace BetterSpecialCustomers.Patches;
 ///   top-rank limit      T = 200 x relationship multiplier   (same as the Mono patches produce)
 ///   additionalPerRank   = enough to reach T at Kingpin      (rounded up, then capped at T)
 ///   maxBuyQuantity      = T
-/// The base quantity is left alone (the game also uses it for XP).
+/// The base quantity is scaled by the relationship multiplier too, so the multiplier also works at the lowest
+/// ranks, where the limit is just the base quantity. The game uses the base for XP as well
+/// (xp = units sold / base x 40), which stays roughly balanced: selling x1.1 more units against a x1.1 larger base
+/// gives about the same XP for a full sale.
 ///
 /// When it runs: at the start of every group arrival (including when a save is loaded mid-visit), right after
 /// the relationship has been snapshotted. Because the relationship only changes at arrival, the numbers stay
 /// correct for the whole visit - the daily refill and the arrival popup both read the same values.
 ///
-/// Difference from the Mono build: at the LOWEST ranks the relationship multiplier does not shrink or grow the
-/// limit (it only scales the top of the curve), because the base value is not touched.
+/// Because the base is scaled from the game's ORIGINAL base (remembered the first time we see each group), the
+/// numbers don't compound from visit to visit.
 /// On Mono this class does nothing; the Harmony patches on the method itself work there.
 /// </summary>
 internal static class BuyLimitFieldSync
@@ -64,9 +67,14 @@ internal static class BuyLimitFieldSync
         }
     }
 
+    private static readonly IntMember BaseQuantity = new IntMember(typeof(SpecialCustomerData), "_baseBuyQuantity");
     private static readonly IntMember PerRank = new IntMember(typeof(SpecialCustomerData), "_additionalBuyQuantityPerRank");
     private static readonly IntMember MaxQuantity = new IntMember(typeof(SpecialCustomerData), "_maxBuyQuantity");
     private static bool _reportedMissing;
+
+    // The game's own base quantity per group, remembered the first time we see it (before we change it).
+    private static readonly System.Collections.Generic.Dictionary<string, int> OriginalBase =
+        new System.Collections.Generic.Dictionary<string, int>();
 #endif
 
     public static void Apply(SpecialCustomerManager manager, string groupId)
@@ -90,18 +98,29 @@ internal static class BuyLimitFieldSync
                 return;
 
             int topRank = (int)ERank.Kingpin;
-            int baseQuantity = data.BaseBuyQuantity;
-            int top = (int)Math.Round(MaxBuyPatch.NewMaxBuyQuantity * GroupRelationships.GetMultiplier(groupId));
+            double multiplier = GroupRelationships.GetMultiplier(groupId);
+
+            // The game's own base, remembered before we first change it.
+            string key = groupId.ToLowerInvariant();
+            if (!OriginalBase.TryGetValue(key, out int originalBase))
+            {
+                originalBase = data.BaseBuyQuantity;
+                OriginalBase[key] = originalBase;
+            }
+
+            int baseQuantity = BaseQuantity.Exists ? (int)Math.Round(originalBase * multiplier) : originalBase;
+            int top = (int)Math.Round(MaxBuyPatch.NewMaxBuyQuantity * multiplier);
             int perRank = Math.Max(0, (int)Math.Ceiling((top - baseQuantity) / (double)topRank));
 
             int oldPerRank = PerRank.Get(data);
             int oldMax = MaxQuantity.Get(data);
+            if (BaseQuantity.Exists) BaseQuantity.Set(data, baseQuantity);
             PerRank.Set(data, perRank);
             MaxQuantity.Set(data, top);
 
             if (PatchDiagnostics.Enabled)
                 Melon<Core>.Logger.Msg(
-                    $"[diag] BuyLimitFieldSync [{groupId}]: base {baseQuantity}, perRank {oldPerRank} -> {perRank}, max {oldMax} -> {top} " +
+                    $"[diag] BuyLimitFieldSync [{groupId}]: base {originalBase} -> {baseQuantity}, perRank {oldPerRank} -> {perRank}, max {oldMax} -> {top} " +
                     $"(relationship x{GroupRelationships.GetMultiplier(groupId):0.00}; Kingpin limit = {Math.Min(baseQuantity + perRank * topRank, top)})");
         }
         catch (Exception ex)

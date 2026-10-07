@@ -74,5 +74,6 @@ public class RelationshipDeparturePatch
             return;
 
         GroupRelationships.EndVisit(group.GroupId);
+        BetterSpecialCustomers.Quests.JobController.OnGroupLeft(group.GroupId);
     }
 }

@@ -32,5 +32,16 @@ namespace BetterSpecialCustomers
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
         }
 
+        public override void OnUpdate()
+        {
+            // About once a second: let the hippies' package job notice the package moving between dead drops.
+            if (Time.unscaledTime >= _nextQuestTick)
+            {
+                _nextQuestTick = Time.unscaledTime + 1f;
+                BetterSpecialCustomers.Quests.HippiesTask.Tick();
+            }
+        }
+
+        private float _nextQuestTick;
     }
 }
