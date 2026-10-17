@@ -490,6 +490,11 @@
 		<Reference Include="UnityEngine.Il2CppAssetBundleManager">
 			<HintPath>Libs\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
 		</Reference>
+		<!-- The plain (not Il2Cpp-wrapped) Newtonsoft.Json 13.0.2 that S1API also uses; it is already loaded at runtime, so don't copy it. -->
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>Libs\Newtonsoft.Json.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>

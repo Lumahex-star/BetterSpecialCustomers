@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using MelonLoader;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 #if MONO
 using ScheduleOne.NPCs.Relation;
 #elif IL2CPP
@@ -161,35 +161,30 @@ public static class GroupRelationships
     // We store the state INSIDE the game's own SpecialCustomers.json as an extra property:
     //
     //   "BetterSpecialCustomers_Relationships": [
-    //       { "id": "hippies", "current": 3, "applied": 2.5, "inVisit": 1, "gained": 1, "sold": 120 }, ...
+    //       { "id": "hippies", "current": 3.0, "applied": 2.5, "inVisit": true, "gained": true, "sold": 120 }, ...
     //   ]
     //
     // The game reads that file with JsonUtility, which ignores properties it doesn't know, so the save
     // stays valid if the mod is removed. Doing it this way (instead of our own file) matters because the
     // game deletes unknown files from the save folder every time it saves. See RelationshipPersistencePatches.cs.
-    // The tiny hand-written reader/writer avoids JsonUtility, which can't serialize mod classes on IL2CPP.
+    // We use Newtonsoft.Json (the plain build S1API also uses), not JsonUtility, which can't serialize mod classes on IL2CPP.
     // InVisit, Applied and the sold total are saved too, otherwise loading a save in the middle of a visit would
     // start a "new" visit and apply the relationship early.
 
     public const string JsonKey = "BetterSpecialCustomers_Relationships";
 
-    private static readonly Regex SectionRegex =
-        new Regex("\"" + JsonKey + "\"\\s*:\\s*\\[(.*?)\\]", RegexOptions.Compiled | RegexOptions.Singleline);
+    // Don't turn date-like strings in the game's part of the file into dates; it has to be written back unchanged.
+    private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
 
-    private static readonly Regex EntryRegex = new Regex("\\{([^}]*)\\}", RegexOptions.Compiled);
-
-    private static string ReadField(string entry, string name)
+    // One group's saved state. Older saves wrote inVisit and gained as 1/0; Newtonsoft reads those as booleans too.
+    private class SavedGroup
     {
-        Match m = Regex.Match(entry, "\"" + name + "\"\\s*:\\s*\"?([^\",\\s}]+)");
-        return m.Success ? m.Groups[1].Value : null;
-    }
-
-    private static float ReadFloat(string entry, string name, float fallback)
-    {
-        string raw = ReadField(entry, name);
-        return raw != null && float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float v)
-            ? Clamp(v)
-            : fallback;
+        [JsonProperty("id")] public string Id;
+        [JsonProperty("current")] public float Current = DefaultValue;
+        [JsonProperty("applied")] public float? Applied;
+        [JsonProperty("inVisit")] public bool InVisit;
+        [JsonProperty("gained")] public bool Gained;
+        [JsonProperty("sold")] public int Sold;
     }
 
     public static void Clear()
@@ -197,44 +192,46 @@ public static class GroupRelationships
         States.Clear();
     }
 
-    /// <summary>The JSON fragment to insert into the game's save string.</summary>
-    public static string ToJsonProperty()
+    /// <summary>Returns the game's save JSON with our relationship property added.</summary>
+    public static string AddToSaveJson(string json)
     {
-        List<string> entries = new List<string>();
+        JObject root = JsonConvert.DeserializeObject<JObject>(json, JsonSettings);
+        var groups = new List<SavedGroup>();
         foreach (KeyValuePair<string, State> pair in States)
         {
             State s = pair.Value;
-            entries.Add(string.Format(CultureInfo.InvariantCulture,
-                "{{ \"id\": \"{0}\", \"current\": {1}, \"applied\": {2}, \"inVisit\": {3}, \"gained\": {4}, \"sold\": {5} }}",
-                pair.Key, s.Current.ToString("R", CultureInfo.InvariantCulture), s.Applied.ToString("R", CultureInfo.InvariantCulture),
-                s.InVisit ? 1 : 0, s.GainedThisVisit ? 1 : 0, s.SoldThisVisit));
+            groups.Add(new SavedGroup
+            {
+                Id = pair.Key, Current = s.Current, Applied = s.Applied,
+                InVisit = s.InVisit, Gained = s.GainedThisVisit, Sold = s.SoldThisVisit,
+            });
         }
-        return $"\"{JsonKey}\": [ {string.Join(", ", entries)} ]";
+        root[JsonKey] = JArray.FromObject(groups);
+        return root.ToString(Formatting.Indented);
     }
 
+    /// <summary>Replaces all state with what the save JSON holds (none if it has no relationship property).</summary>
     public static void LoadFromJson(string json)
     {
         States.Clear();
         if (string.IsNullOrEmpty(json))
             return;
 
-        Match section = SectionRegex.Match(json);
-        if (!section.Success)
+        JObject root = JsonConvert.DeserializeObject<JObject>(json, JsonSettings);
+        if (root?[JsonKey] is not JArray saved)
             return;
 
-        foreach (Match entryMatch in EntryRegex.Matches(section.Groups[1].Value))
+        foreach (SavedGroup group in saved.ToObject<List<SavedGroup>>())
         {
-            string entry = entryMatch.Groups[1].Value;
-            string id = ReadField(entry, "id");
-            if (string.IsNullOrEmpty(id))
+            if (group == null || string.IsNullOrEmpty(group.Id))
                 continue;
 
-            State state = GetState(id);
-            state.Current = ReadFloat(entry, "current", DefaultValue);
-            state.Applied = ReadFloat(entry, "applied", state.Current);
-            state.InVisit = ReadField(entry, "inVisit") == "1";
-            state.GainedThisVisit = ReadField(entry, "gained") == "1";
-            state.SoldThisVisit = int.TryParse(ReadField(entry, "sold"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int sold) ? sold : 0;
+            State state = GetState(group.Id);
+            state.Current = Clamp(group.Current);
+            state.Applied = Clamp(group.Applied ?? group.Current);
+            state.InVisit = group.InVisit;
+            state.GainedThisVisit = group.Gained;
+            state.SoldThisVisit = group.Sold;
         }
     }
 }
