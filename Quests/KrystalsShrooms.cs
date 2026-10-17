@@ -44,6 +44,12 @@ namespace BetterSpecialCustomers.Quests
         // A brick holds 20 units, so one brick is worth about $1,960.
         private const float PricePerUnit = 98f;
 
+        // How addictive the product is (0 to 1). Cosmic adds nothing on top, so this is the final value.
+        private const float Addictiveness = 0.4f;
+
+        // The deep purple the brick (and the Cosmic label's product colour) is tinted with.
+        private static readonly Color DeepPurple = new Color(0.4f, 0.12f, 0.65f);
+
         // Cosmic: NPCs who take it move this much slower (0.9 = 10% slower).
         private const float CosmicNpcSpeedFactor = 0.9f;
 
@@ -91,6 +97,7 @@ namespace BetterSpecialCustomers.Quests
                     .WithProductPrice(PricePerUnit)
                     .WithProperty(_cosmic)
                     .WithLegalStatus(LegalStatus.Illegal)
+                    .WithBaseAddictiveness(Addictiveness)
                     .WithDefaultQuality(Quality.Premium)
                     .WithRepresentationsFrom(template)
                     .WithValidPackaging(brick)
@@ -133,8 +140,8 @@ namespace BetterSpecialCustomers.Quests
             return EffectCreator.CreateBuilder()
                 .WithBasicInfo(CosmicEffectId, "Cosmic", "You can see the universe breathing.")
                 .WithTier(3)
-                .WithAddictiveness(0.05f)
-                .WithColors(productColor: new Color(0.55f, 0.35f, 0.85f), labelColor: new Color(0.45f, 0.9f, 0.85f))
+                .WithAddictiveness(0f) // the product's own addictiveness covers it
+                .WithColors(productColor: DeepPurple, labelColor: new Color(0.45f, 0.9f, 0.85f))
                 .WithNpcBehavior(SlowNpc)
                 .WithNpcClearBehavior(RestoreNpc)
                 .Build();
@@ -167,7 +174,7 @@ namespace BetterSpecialCustomers.Quests
             }
         }
 
-        // A brick has no reusable shell, so S1API needs its look registered: the game's own shroom brick, tinted purple.
+        // A brick has no reusable shell, so S1API needs its look registered: the game's own shroom brick, tinted deep purple.
         private static void RegisterBrickVisual()
         {
             if (_brickVisualRegistered) return;
@@ -178,8 +185,6 @@ namespace BetterSpecialCustomers.Quests
             _brickVisualRegistered = true;
         }
 
-        private static readonly Color BrickTint = new Color(0.6f, 0.4f, 0.9f);
-
         private static void TintBrick(GameObject clone)
         {
             foreach (var renderer in clone.GetComponentsInChildren<Renderer>(true))
@@ -187,7 +192,7 @@ namespace BetterSpecialCustomers.Quests
                 var material = renderer.material; // a per-clone copy, so the game's shared brick material is untouched
                 foreach (string property in new[] { "_BaseColor", "_Color" })
                     if (material.HasProperty(property))
-                        material.SetColor(property, Color.Lerp(material.GetColor(property), BrickTint, 0.35f));
+                        material.SetColor(property, DeepPurple); // multiplies the brick's texture, so its detail stays visible
             }
         }
 
