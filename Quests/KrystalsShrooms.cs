@@ -15,6 +15,7 @@ using GameProductDefinition = ScheduleOne.Product.ProductDefinition;
 using GameProductItemInstance = ScheduleOne.Product.ProductItemInstance;
 using GameShroomDefinition = ScheduleOne.Product.ShroomDefinition;
 using GamePackagingDefinition = ScheduleOne.Product.Packaging.PackagingDefinition;
+using GameProductStored = ScheduleOne.Product.Product_Stored;
 using GameQuality = ScheduleOne.ItemFramework.EQuality;
 #elif IL2CPP
 using GameRegistry = Il2CppScheduleOne.Registry;
@@ -24,6 +25,7 @@ using GameProductDefinition = Il2CppScheduleOne.Product.ProductDefinition;
 using GameProductItemInstance = Il2CppScheduleOne.Product.ProductItemInstance;
 using GameShroomDefinition = Il2CppScheduleOne.Product.ShroomDefinition;
 using GamePackagingDefinition = Il2CppScheduleOne.Product.Packaging.PackagingDefinition;
+using GameProductStored = Il2CppScheduleOne.Product.Product_Stored;
 using GameQuality = Il2CppScheduleOne.ItemFramework.EQuality;
 #endif
 
@@ -61,6 +63,9 @@ namespace BetterSpecialCustomers.Quests
         private static CustomEffect _cosmic;
         private static CustomProductDefinition _definition;
         private static bool _brickVisualRegistered;
+        private static bool _looseVisualRegistered;
+        private static string _templateId;
+        private static GameObject _looseVisual;
 
         // NPCs currently slowed by Cosmic, so the slowdown is applied and removed once each.
         private static readonly HashSet<string> SlowedNpcs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -87,7 +92,9 @@ namespace BetterSpecialCustomers.Quests
                     .WithCompatibilityDrugType(DrugType.Shrooms) // shroom customers treat it as shrooms
                     .Build();
                 _cosmic ??= BuildCosmicEffect();
+                _templateId = template.ID;
                 RegisterBrickVisual();
+                RegisterLooseVisual(); // must come before the definition is built
 
                 // No WithNativeMixerMap and no ProductMixingProfile: S1API rejects any attempt to mix it.
                 _definition = CustomProductItemCreator
@@ -188,12 +195,97 @@ namespace BetterSpecialCustomers.Quests
         private static void TintBrick(GameObject clone)
         {
             foreach (var renderer in clone.GetComponentsInChildren<Renderer>(true))
+                Tint(renderer.material); // a per-clone copy, so the game's shared brick material is untouched
+        }
+
+        // The colour multiplies the material's texture, so its detail stays visible.
+        private static void Tint(Material material)
+        {
+            foreach (string property in new[] { "_BaseColor", "_Color" })
+                if (material.HasProperty(property))
+                    material.SetColor(property, DeepPurple);
+        }
+
+        // Loose (unpacked) shrooms: S1API swaps the borrowed look for this visual everywhere a loose product shows
+        // (stored, held, on stations, in packaging stations) and draws the inventory icon from it.
+        private static void RegisterLooseVisual()
+        {
+            if (_looseVisualRegistered) return;
+            var profile = new ProductPresentationProfileBuilder()
+                .WithLooseVisual(BuildLooseVisual)
+                .WithGeneratedIconFromLooseVisual()
+                .Build();
+            ProductPresentationProfileRegistry.RegisterForProduct(OwnerId, ProductId, profile);
+            _looseVisualRegistered = true;
+        }
+
+        // Copies the regular shrooms' meshes into a hidden object with deep purple materials. Built once and reused; S1API
+        // clones it wherever it is needed. Null (logged) if the regular shrooms' model can't be found, which leaves the
+        // borrowed look.
+        private static GameObject BuildLooseVisual()
+        {
+            if (_looseVisual != null) return _looseVisual;
+
+            var definition = GameRegistry.GetItem(_templateId);
+#if MONO
+            var template = definition as GameProductDefinition;
+#else
+            var template = definition?.TryCast<GameProductDefinition>();
+#endif
+            var stored = template?.StoredItem;
+            var productStored = stored != null ? stored.GetComponent<GameProductStored>() : null;
+            Transform container = productStored?.Visuals?.VisualsContainer ?? stored?.transform;
+            if (container == null)
             {
-                var material = renderer.material; // a per-clone copy, so the game's shared brick material is untouched
-                foreach (string property in new[] { "_BaseColor", "_Color" })
-                    if (material.HasProperty(property))
-                        material.SetColor(property, DeepPurple); // multiplies the brick's texture, so its detail stays visible
+                Melon<Core>.Logger.Warning($"[shrooms] no model found on '{_templateId}'; loose shrooms keep the regular look");
+                return null;
             }
+
+            var root = new GameObject("KrystalsCosmicCaps_Loose");
+            root.SetActive(false);
+            UnityEngine.Object.DontDestroyOnLoad(root);
+
+            // Only meshes and materials are copied, so none of the game's scripts on the model come along.
+            var tinted = new Dictionary<Material, Material>();
+            foreach (var filter in container.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var renderer = filter.GetComponent<MeshRenderer>();
+                if (renderer == null || filter.sharedMesh == null) continue;
+
+                var part = new GameObject(filter.name);
+                part.transform.SetParent(root.transform, false);
+                part.transform.localPosition = container.InverseTransformPoint(filter.transform.position);
+                part.transform.localRotation = Quaternion.Inverse(container.rotation) * filter.transform.rotation;
+                Vector3 scale = filter.transform.lossyScale, parentScale = container.lossyScale;
+                part.transform.localScale = new Vector3(scale.x / parentScale.x, scale.y / parentScale.y, scale.z / parentScale.z);
+                part.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+
+                var sources = renderer.sharedMaterials;
+                var materials = new Material[sources.Length];
+                for (int i = 0; i < sources.Length; i++)
+                {
+                    var source = sources[i];
+                    if (source == null) continue;
+                    if (!tinted.TryGetValue(source, out var copy))
+                    {
+                        copy = new Material(source);
+                        Tint(copy);
+                        tinted[source] = copy;
+                    }
+                    materials[i] = copy;
+                }
+                part.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+
+            if (root.transform.childCount == 0)
+            {
+                UnityEngine.Object.Destroy(root);
+                Melon<Core>.Logger.Warning($"[shrooms] '{_templateId}' has no meshes to copy; loose shrooms keep the regular look");
+                return null;
+            }
+
+            _looseVisual = root;
+            return root;
         }
 
         // ---- Used by the hippies' job ----

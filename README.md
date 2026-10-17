@@ -39,7 +39,7 @@ The hippies' package is a brick of **Krystal's Cosmic Caps**, a shroom product a
 
 - **Worth more than regular shrooms:** $98 a unit (1.5x the usual $65), about **$1,960** a brick of 20.
 - **Effect:** **Cosmic**, an effect only these shrooms have. NPCs who take Cosmic move 10% slower while it lasts.
-- **40% addictive**, and the brick is a deep purple.
+- **40% addictive**, and deep purple, both as a brick and unpacked.
 - **It can't be mixed.**
 - **Stealing it:** if the brick hasn't reached the second drop by the second day change after you picked it up, or the hippies leave town first, it counts as stolen. The job fails, the hippies lose **1.0** relationship (the same as killing one of them), and the product is added to your Product Manager so you can sell it. Unpacking the brick counts as stealing too, because only the brick itself counts as a delivery.
 - Every player in a multiplayer game needs the mod, since the product only exists with it. If you remove the mod, any of these shrooms in your save disappear.
