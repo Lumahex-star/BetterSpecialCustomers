@@ -30,6 +30,8 @@ namespace BetterSpecialCustomers
             // Patch each class separately (instead of PatchAll) so one failing patch can't stop the others.
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
+            // Krystal's shrooms must exist before a save's items are restored, so register them as each save starts loading.
+            S1API.Lifecycle.GameLifecycle.OnPreLoad += BetterSpecialCustomers.Quests.KrystalsShrooms.Register;
         }
 
         public override void OnUpdate()

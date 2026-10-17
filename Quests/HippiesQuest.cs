@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using BetterSpecialCustomers.Relationships;
 using MelonLoader;
+using S1API.GameTime;               // TimeManager
 using S1API.Internal.Abstraction;   // Saveable
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
@@ -13,8 +15,9 @@ using GameDeadDrop = Il2CppScheduleOne.Economy.DeadDrop;
 
 namespace BetterSpecialCustomers.Quests
 {
-    // Krystal Bird's job: a package to carry from one dead drop to another. The shared rules (roll, start, reward,
-    // reset) are in JobController. There is no target NPC; progress is read from what is in the two drops.
+    // Krystal Bird's job: a brick of her shrooms (see KrystalsShrooms) to carry from one dead drop to another. The shared
+    // rules (roll, start, reward, reset) are in JobController. There is no target NPC; progress is read from what is in
+    // the two drops. Keeping the brick is allowed, but it counts as stealing and costs relationship with the hippies.
 
     // Which two drops this run uses, and how far along the package is. Saved with the game.
     public class DropRun
@@ -23,8 +26,12 @@ namespace BetterSpecialCustomers.Quests
         public string ToGuid = string.Empty;
         public string FromName = string.Empty;
         public string ToName = string.Empty;
+        public string Package = string.Empty;  // the item placed; anything else is an older version's run
         public bool Placed;     // the package has been put in the first drop
         public bool PickedUp;   // the package has left the first drop
+        public int PickedUpDay; // the game's ElapsedDays when it was picked up
+        public bool Delivered;  // the package reached the second drop
+        public bool Stolen;     // judged stolen and already penalised
     }
 
     public class HippiesQuestSave : Saveable
@@ -45,8 +52,16 @@ namespace BetterSpecialCustomers.Quests
     // The package, the two drops and the reward. Works on the game's own dead drops and inventory.
     internal static class HippiesTask
     {
-        // PLACEHOLDER: an existing item stands in for the package, so no new item or model is needed.
-        private const string PackageItemId = "paisleybandana";
+        private const string PackageItemId = KrystalsShrooms.ProductId;
+
+        // What older versions of the mod put in the drop, so a run saved by them can be swapped for the brick.
+        private const string LegacyPackageItemId = "paisleybandana";
+
+        // Not delivered this many game days after pickup (or before the hippies leave town): the brick counts as stolen.
+        private const int DeadlineDays = 2;
+
+        // Relationship lost for stealing the brick (the scale is 0 to 5; killing a group member also costs 1.0).
+        private const float TheftPenalty = 1f;
 
         // The reward: grow supplies (item id, amount). The ids are best guesses; a missing one is logged and skipped.
         private static readonly KeyValuePair<string, int>[] Supplies =
@@ -76,15 +91,12 @@ namespace BetterSpecialCustomers.Quests
             return drop != null ? drop.transform.position : (Vector3?)null;
         }
 
-        private static int Count(GameDeadDrop drop, string itemId)
+        private static bool HasBrick(GameDeadDrop drop)
         {
-            int total = 0;
+            if (drop == null) return false;
             foreach (var slot in drop.Storage.ItemSlots)
-            {
-                var item = slot.ItemInstance;
-                if (item != null && item.Definition.ID == itemId) total += item.Quantity;
-            }
-            return total;
+                if (KrystalsShrooms.IsBrick(slot.ItemInstance)) return true;
+            return false;
         }
 
         private static void RemoveAll(GameDeadDrop drop, string itemId)
@@ -101,10 +113,11 @@ namespace BetterSpecialCustomers.Quests
         {
             var save = Save;
             if (save == null) return;
-            bool wanted = save.Data.Accepted && !save.Data.TargetKilled;
+            bool wanted = save.Data.Accepted && !save.Data.TargetKilled && !save.Data.Completed;
             if (wanted)
             {
                 if (!save.Drops.Placed) ChooseAndPlace(save.Drops);
+                else MigrateLegacyRun(save.Drops);
             }
             else
             {
@@ -127,7 +140,7 @@ namespace BetterSpecialCustomers.Quests
             var far = all.FindAll(d => (d.transform.position - from.transform.position).magnitude >= MinDropDistance);
             var to = far.Count > 0 ? far[UnityEngine.Random.Range(0, far.Count)] : all.Find(d => d != from);
 
-            var package = RewardUtil.CreateItem(PackageItemId, 1);
+            var package = KrystalsShrooms.CreateBrick();
             if (package == null) return;
             from.Storage.InsertItem(package);
 
@@ -135,24 +148,61 @@ namespace BetterSpecialCustomers.Quests
             run.ToGuid = to.GUID.ToString();
             run.FromName = from.DeadDropName;
             run.ToName = to.DeadDropName;
+            run.Package = PackageItemId;
             run.Placed = true;
             run.PickedUp = false;
             Melon<Core>.Logger.Msg($"[quest] package placed at '{run.FromName}', to be delivered to '{run.ToName}'");
         }
 
-        // Takes any leftover package out of the world and forgets the run.
+        // A run saved by an older version carries a bandana. Swap it for a brick in the same first drop, so the brick
+        // missing from that drop isn't mistaken for a theft.
+        private static void MigrateLegacyRun(DropRun run)
+        {
+            if (run.Package == PackageItemId || !KrystalsShrooms.IsRegistered) return;
+            var from = FindDrop(run.FromGuid);
+            var to = FindDrop(run.ToGuid);
+            if (from != null) RemoveAll(from, LegacyPackageItemId);
+            if (to != null) RemoveAll(to, LegacyPackageItemId);
+            var package = KrystalsShrooms.CreateBrick();
+            if (from == null || package == null) return;
+            from.Storage.InsertItem(package);
+            run.Package = PackageItemId;
+            run.PickedUp = false;
+            run.Delivered = false;
+            Melon<Core>.Logger.Msg($"[quest] swapped an older run's package for a brick at '{run.FromName}'");
+        }
+
+        // The brick has been picked up and isn't in either drop.
+        private static bool IsMissing(DropRun run) =>
+            run.PickedUp && !run.Delivered && !HasBrick(FindDrop(run.FromGuid)) && !HasBrick(FindDrop(run.ToGuid));
+
+        // The brick is gone for good: the hippies lose relationship and the product shows up in the player's Product Manager.
+        private static void PenalizeTheft(HippiesQuestSave save)
+        {
+            save.Drops.Stolen = true;
+            string group = save.Data.GroupId;
+            if (!string.IsNullOrEmpty(group)) GroupRelationships.Penalize(group, TheftPenalty, "stole Krystal's shrooms");
+            KrystalsShrooms.Discover();
+        }
+
+        // Takes any leftover package out of the world and forgets the run. Runs when the job ends for any reason, so a
+        // brick that left with the player when the hippies left town is judged stolen here.
         private static void Cleanup(HippiesQuestSave save)
         {
             var run = save.Drops;
             if (!run.Placed) return;
+            bool legacy = run.Package != PackageItemId;
+            if (!legacy && !run.Stolen && IsMissing(run)) PenalizeTheft(save);
+            string package = legacy ? LegacyPackageItemId : PackageItemId;
             var from = FindDrop(run.FromGuid);
             var to = FindDrop(run.ToGuid);
-            if (from != null) RemoveAll(from, PackageItemId);
-            if (to != null) RemoveAll(to, PackageItemId);
+            if (from != null) RemoveAll(from, package);
+            if (to != null) RemoveAll(to, package);
             save.Drops = new DropRun();
         }
 
-        // Runs about once a second: moves the job along when the package leaves the first drop and reaches the second.
+        // Runs about once a second: moves the job along when the package leaves the first drop and reaches the second,
+        // and fails it once the deadline passes.
         public static void Tick()
         {
             try
@@ -161,13 +211,16 @@ namespace BetterSpecialCustomers.Quests
                 if (save == null || !save.Data.Accepted || save.Data.TargetKilled || save.Data.Completed) return;
                 var run = save.Drops;
                 if (!run.Placed) return;
+                MigrateLegacyRun(run);
+                if (run.Package != PackageItemId) return;
 
                 var job = HippiesQuest.Job;
                 if (!run.PickedUp)
                 {
                     var from = FindDrop(run.FromGuid);
-                    if (from == null || Count(from, PackageItemId) > 0) return;
+                    if (from == null || HasBrick(from)) return;
                     run.PickedUp = true;
+                    run.PickedUpDay = TimeManager.ElapsedDays;
                     var entries = job.Quest?.QuestEntries;
                     if (entries != null && entries.Count > 1)
                     {
@@ -177,8 +230,24 @@ namespace BetterSpecialCustomers.Quests
                     Melon<Core>.Logger.Msg("[quest] package picked up");
                 }
 
-                var to = FindDrop(run.ToGuid);
-                if (to != null && Count(to, PackageItemId) > 0) job.OnObjectiveDone();
+                if (HasBrick(FindDrop(run.ToGuid)))
+                {
+                    run.Delivered = true;
+                    job.OnObjectiveDone();
+                    return;
+                }
+
+                if (TimeManager.ElapsedDays - run.PickedUpDay < DeadlineDays) return;
+                if (IsMissing(run))
+                {
+                    Melon<Core>.Logger.Msg("[quest] deadline passed, the brick was stolen");
+                    PenalizeTheft(save);
+                }
+                else
+                {
+                    Melon<Core>.Logger.Msg("[quest] deadline passed, the brick was put back undelivered");
+                }
+                job.Fail();
             }
             catch (Exception ex)
             {
@@ -205,7 +274,7 @@ namespace BetterSpecialCustomers.Quests
         });
 
         protected override string Title => "Special Delivery";
-        protected override string Description => "Krystal Bird needs a package carried between two dead drops.";
+        protected override string Description => "Krystal Bird needs a brick of her shrooms carried between two dead drops. Keeping it would be stealing.";
         protected override bool AutoBegin => true; // see BikersQuest: S1API sets the quest up on the next frame
 
         protected override void OnCreated()
@@ -213,8 +282,8 @@ namespace BetterSpecialCustomers.Quests
             base.OnCreated();
             Job.Attach(this);
             var run = HippiesQuestSave.Instance?.Drops ?? new DropRun();
-            AddEntry($"Pick up the package from the dead drop at {run.FromName}", HippiesTask.PositionOf(run.FromGuid));
-            AddEntry($"Deliver it to the dead drop at {run.ToName}", HippiesTask.PositionOf(run.ToGuid));
+            AddEntry($"Pick up Krystal's shrooms from the dead drop at {run.FromName}", HippiesTask.PositionOf(run.FromGuid));
+            AddEntry($"Deliver the brick to the dead drop at {run.ToName} within 2 days", HippiesTask.PositionOf(run.ToGuid));
             AddEntry("Tell Krystal Bird the package has been delivered");
         }
 

@@ -962,6 +962,7 @@
 		<Compile Include="Quests\BikersQuest.cs" />
 		<Compile Include="Quests\BusinessmenQuest.cs" />
 		<Compile Include="Quests\HippiesQuest.cs" />
+		<Compile Include="Quests\KrystalsShrooms.cs" />
 		<Compile Include="Quests\PartyBusQuest.cs" />
 		<Compile Include="Quests\QuestFramework.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />

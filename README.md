@@ -30,14 +30,24 @@ Each group's leader can now ask you for a job. Open the leader's dialogue and as
 |---|---|---|---|
 | Bikers | Diesel Rodd | **Loose Lips.** A club informant is hiding in The Piss Hut. Knock on the door to bring him out and kill him. | $5,000, 100 XP |
 | Businessmen | Johnny Smith | **The Audit.** An auditor follows a daily routine around town (home, the Tall Tower, a cafe, dinner). Find and kill him. | $5,000, 100 XP |
-| Hippies | Krystal Bird | **Special Delivery.** Carry a package from one dead drop to another. | Grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, PGR, Fertilizer), 100 XP |
+| Hippies | Krystal Bird | **Special Delivery.** Carry a brick of Krystal's Cosmic Caps from one dead drop to another within 2 days. You can keep it instead (see below). | Grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, PGR, Fertilizer), 100 XP |
 | Party Bus | Chad Chaddington | **Spread the Word.** Invite 5 townspeople to the Party Bus. Each one can turn you down. | $2,500, 5 Energy Drinks, 100 XP |
+
+#### Krystal's Cosmic Caps
+
+The hippies' package is a brick of **Krystal's Cosmic Caps**, a shroom product added by the mod. Nobody can grow, cook or mix it, so it only ever comes from Krystal.
+
+- **Worth more than regular shrooms:** $98 a unit (1.5x the usual $65), about **$1,960** a brick of 20.
+- **Effects:** Euphoric, Calming, Thought-Provoking, Glowie and **Cosmic**, an effect only these shrooms have. NPCs who take Cosmic move 10% slower while it lasts.
+- **It can't be mixed.**
+- **Stealing it:** if the brick hasn't reached the second drop by the second day change after you picked it up, or the hippies leave town first, it counts as stolen. The job fails, the hippies lose **1.0** relationship (the same as killing one of them), and the product is added to your Product Manager so you can sell it. Unpacking the brick counts as stealing too, because only the brick itself counts as a delivery.
+- Every player in a multiplayer game needs the mod, since the product only exists with it. If you remove the mod, any of these shrooms in your save disappear.
 
 ## Requirements
 
 - Schedule I
 - MelonLoader
-- [S1API](https://github.com/ifBars/S1API) (used by the quests). Use a recent version; older ones don't support everything the quests need.
+- [S1API](https://github.com/ifBars/S1API) (used by the quests). Use version 3.2.1 or later; Krystal's shrooms need its custom product and custom effect support.
 
 ## Installation
 
