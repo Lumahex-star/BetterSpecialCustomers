@@ -72,47 +72,47 @@ namespace BetterSpecialCustomers.Patches
         private static void OnPunched(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPunchTime < 20f) return;
+            if (Time.time - _lastPunchTime < ModConfig.PenaltyCooldownSeconds.Value) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
             _lastPunchTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 0.25f, "punched");
+            GroupRelationships.Penalize(group.GroupId, ModConfig.PunchPenalty.Value, "punched");
         }
 
         private static void OnKilledSomeone(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastKillTime < 20f) return;
+            if (Time.time - _lastKillTime < ModConfig.PenaltyCooldownSeconds.Value) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
             _lastKillTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 1f, "customer killed");
+            GroupRelationships.Penalize(group.GroupId, ModConfig.KillPenalty.Value, "customer killed");
         }
         private static void OnAimedAt(Player attacker)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastAimTime < 20f) return;
+            if (Time.time - _lastAimTime < ModConfig.PenaltyCooldownSeconds.Value) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
             _lastAimTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 0.25f, "aimed weapon");
+            GroupRelationships.Penalize(group.GroupId, ModConfig.AimPenalty.Value, "aimed weapon");
         }
         private static void OnPickpocketFailed(Player thief)
         {
             if (!InstanceFinder.IsServer) return;
-            if (Time.time - _lastPickpocketTime < 20f) return;
+            if (Time.time - _lastPickpocketTime < ModConfig.PenaltyCooldownSeconds.Value) return;
 
             var group = NetworkSingleton<SpecialCustomerManager>.Instance.CurrentGroupData;
             if (group == null) return;
 
             _lastPickpocketTime = Time.time;
-            GroupRelationships.Penalize(group.GroupId, 0.25f, "pickpocket failed");
+            GroupRelationships.Penalize(group.GroupId, ModConfig.PickpocketPenalty.Value, "pickpocket failed");
         }
     }
 }

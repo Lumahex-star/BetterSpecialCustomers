@@ -13,7 +13,7 @@ using Il2CppScheduleOne.SpecialCustomers;
 namespace BetterSpecialCustomers.Patches;
 
 // Saving: SpecialCustomerManager.GetSaveString() returns the JSON the game writes to SpecialCustomers.json.
-// We append our relationship values to that same JSON object.
+// We add our relationship values to that same JSON object.
 [HarmonyPatch(typeof(SpecialCustomerManager), nameof(SpecialCustomerManager.GetSaveString))]
 public class RelationshipSavePatch
 {
@@ -22,13 +22,7 @@ public class RelationshipSavePatch
         PatchDiagnostics.Hit("RelationshipSavePatch (writing save)");
         try
         {
-            int end = __result.LastIndexOf('}');
-            if (end < 0)
-                return;
-
-            __result = __result.Substring(0, end).TrimEnd()
-                       + ",\n    " + GroupRelationships.ToJsonProperty()
-                       + "\n}";
+            __result = GroupRelationships.AddToSaveJson(__result);
         }
         catch (Exception ex)
         {

@@ -13,7 +13,7 @@ using ScheduleOne.NPCs; // Mono using directive
 // Other build configs
 #endif
 
-[assembly: MelonInfo(typeof(BetterSpecialCustomers.Core), "BetterSpecialCustomers", "1.0.0", "Lumahex", null)] 
+[assembly: MelonInfo(typeof(BetterSpecialCustomers.Core), "BetterSpecialCustomers", "1.1.0", "Lumahex", null)] 
 [assembly: MelonGame("TVGS", "Schedule I")]
 // MelonLoader already applies every [HarmonyPatch] class in the mod assembly on load.
 // Opt out so the manual PatchAll() below is the only thing applying them (otherwise each patch is applied twice).
@@ -26,10 +26,13 @@ namespace BetterSpecialCustomers
         public override void OnInitializeMelon()
         {
             LoggerInstance.Msg("Initialized.");
+            ModConfig.Init();
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.Probe();
             // Patch each class separately (instead of PatchAll) so one failing patch can't stop the others.
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.ListPatchedMethods(HarmonyInstance);
+            // Krystal's shrooms must exist before a save's items are restored, so register them as each save starts loading.
+            S1API.Lifecycle.GameLifecycle.OnPreLoad += BetterSpecialCustomers.Quests.KrystalsShrooms.Register;
         }
 
         public override void OnUpdate()

@@ -39,6 +39,10 @@ namespace BetterSpecialCustomers.Quests
         // Reported back, finished and rewarded.
         public bool Completed;
 
+        // The job ended badly (e.g. the hippies' package was stolen). Completed is set too, so it can't be retried
+        // this visit, but no reward is paid.
+        public bool Failed;
+
         // This visit's roll: 0 = not asked yet, 1 = the leader has a job, 2 = nothing this time.
         public int OfferState;
 
@@ -54,9 +58,7 @@ namespace BetterSpecialCustomers.Quests
     {
         public string QuestIdPrefix;
         public string RewardLogLabel;                 // e.g. "Diesel's informant job"
-        public float RelationshipReward = 0.5f;       // takes effect from the group's next visit
-        public float CashReward = 5000f;
-        public int XpReward = 100;
+        public Func<int> CashReward;                  // optional: the job's cash reward setting (none if null)
         public Action GrantExtraReward;               // optional: e.g. hand the player items
 
         public Func<JobSaveData> GetSave;             // null until the save has loaded
@@ -72,17 +74,18 @@ namespace BetterSpecialCustomers.Quests
         public string[] NoJobLines;
         public string AlreadyDoneLine;
         public string HandInLine;
+        public string FailedLine;                     // optional: asked again after a failed job (falls back to AlreadyDoneLine)
     }
 
     // The shared rules of a job: roll for it once per visit, start it, complete it, reward it, reset it.
     internal sealed class JobController
     {
-        // DEBUG: when true the leader always has a job and you can take it again straight after finishing it,
-        // as often as you like within one visit. Set to false for normal play.
-        public static readonly bool DebugMode = false;
+        // DEBUG (a setting, off by default): the leader always has a job and you can take it again straight after
+        // finishing it, as often as you like within one visit.
+        public static bool DebugMode => ModConfig.DebugMode.Value;
 
-        // Chance (0 to 1) that a leader has a job on a given visit.
-        public static float OfferChance => DebugMode ? 1f : 0.5f;
+        // Chance (0 to 1) that a leader has a job on a given visit (a setting, 0.5 by default).
+        public static float OfferChance => DebugMode ? 1f : ModConfig.JobChance.Value;
 
         private static readonly List<JobController> All = new List<JobController>();
 
@@ -136,7 +139,7 @@ namespace BetterSpecialCustomers.Quests
             if (save == null) return null;
             if (!string.IsNullOrEmpty(groupId)) save.GroupId = groupId; // lets the visit reset find this group
 
-            if (save.Completed && !DebugMode) return lines.AlreadyDoneLine;
+            if (save.Completed && !DebugMode) return save.Failed ? lines.FailedLine ?? lines.AlreadyDoneLine : lines.AlreadyDoneLine;
             if (save.Completed) ResetRun(); // debug mode only: start a fresh run
 
             // Roll once per visit and remember it, so asking again can't re-roll (debug mode re-rolls every time).
@@ -199,16 +202,30 @@ namespace BetterSpecialCustomers.Quests
             _def.RefreshTarget();
         }
 
+        // Ends the open job without a reward (the caller applies any penalty). The leader won't offer another this visit.
+        public void Fail()
+        {
+            var save = Save;
+            if (save == null || !save.Accepted || save.Completed) return;
+            save.Completed = true;
+            save.Failed = true;
+            _quest?.Cancel();
+            _def.RefreshTarget();
+            Melon<Core>.Logger.Msg($"[quest] {_def.RewardLogLabel} failed");
+        }
+
         private void HandleComplete()
         {
-            if (_def.CashReward > 0f) Money.ChangeCashBalance(_def.CashReward, true, true);
-            LevelManager.AddXP(_def.XpReward);
+            int cash = _def.CashReward?.Invoke() ?? 0;
+            int xp = ModConfig.JobXpReward.Value;
+            if (cash > 0) Money.ChangeCashBalance(cash, true, true);
+            LevelManager.AddXP(xp);
             _def.GrantExtraReward?.Invoke();
-            Melon<Core>.Logger.Msg($"[quest] paid ${_def.CashReward}, {_def.XpReward} XP");
+            Melon<Core>.Logger.Msg($"[quest] paid ${cash}, {xp} XP");
 
             string group = Save?.GroupId;
             if (!string.IsNullOrEmpty(group))
-                GroupRelationships.Reward(group, _def.RelationshipReward, "completed " + _def.RewardLogLabel);
+                GroupRelationships.Reward(group, ModConfig.JobRelationshipReward.Value, "completed " + _def.RewardLogLabel);
             else
                 Melon<Core>.Logger.Warning("[quest] no saved group id, relationship reward skipped");
         }
@@ -225,6 +242,7 @@ namespace BetterSpecialCustomers.Quests
             save.Accepted = false;
             save.TargetKilled = false;
             save.Completed = false;
+            save.Failed = false;
             _def.RefreshTarget();
         }
 

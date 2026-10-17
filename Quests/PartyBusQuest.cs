@@ -101,7 +101,7 @@ namespace BetterSpecialCustomers.Quests
         {
             QuestIdPrefix = "partybus_word_quest",
             RewardLogLabel = "Chad's spread-the-word job",
-            CashReward = 2500f,                    // a moderate payment, plus energy drinks
+            CashReward = () => ModConfig.PartyBusCashReward.Value, // a moderate payment, plus energy drinks
             GrantExtraReward = PartyTask.GiveSupplies,
             GetSave = () => PartyBusQuestSave.Instance?.Data,
             PickName = () => string.Empty,         // no target to name

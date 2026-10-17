@@ -5,8 +5,8 @@
 		<RootNamespace>BetterSpecialCustomers</RootNamespace> 
 		<LangVersion>default</LangVersion>
 		<IsPackable>false</IsPackable>
-		<AssemblyVersion>1.0.0.0</AssemblyVersion>
-		<FileVersion>1.0.0.0</FileVersion>
+		<AssemblyVersion>1.1.0.0</AssemblyVersion>
+		<FileVersion>1.1.0.0</FileVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -490,6 +490,11 @@
 		<Reference Include="UnityEngine.Il2CppAssetBundleManager">
 			<HintPath>Libs\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
 		</Reference>
+		<!-- The plain (not Il2Cpp-wrapped) Newtonsoft.Json 13.0.2 that S1API also uses; it is already loaded at runtime, so don't copy it. -->
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>Libs\Newtonsoft.Json.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
@@ -945,6 +950,7 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="Diagnostics\PatchDiagnostics.cs" />
+		<Compile Include="ModConfig.cs" />
 		<Compile Include="Patches\BikersQuestChoicePatch.cs" />
 		<Compile Include="Patches\BusinessmenQuestChoicePatch.cs" />
 		<Compile Include="Patches\BuyLimitFieldSync.cs" />
@@ -962,6 +968,7 @@
 		<Compile Include="Quests\BikersQuest.cs" />
 		<Compile Include="Quests\BusinessmenQuest.cs" />
 		<Compile Include="Quests\HippiesQuest.cs" />
+		<Compile Include="Quests\KrystalsShrooms.cs" />
 		<Compile Include="Quests\PartyBusQuest.cs" />
 		<Compile Include="Quests\QuestFramework.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />

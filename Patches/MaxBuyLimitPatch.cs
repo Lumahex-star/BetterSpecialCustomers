@@ -21,7 +21,7 @@ namespace BetterSpecialCustomers.Patches;
 [HarmonyPatch(typeof(SpecialCustomerData), nameof(SpecialCustomerData.GetBuyQuantityForPlayerRank))]
 public class MaxBuyPatch
 {
-    public const int NewMaxBuyQuantity = 200;
+    public static int NewMaxBuyQuantity => ModConfig.MaxBuyQuantity.Value; // 200 by default
 
     // Flip to true to log every call with its caller.
     private const bool DebugLogging = false;
