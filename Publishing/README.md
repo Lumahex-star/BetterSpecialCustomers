@@ -31,7 +31,7 @@ Open a leader's dialogue and ask for work. Each visit there is a **50% chance** 
 | Hippies | Krystal Bird | **Special Delivery.** Carry a brick of Krystal's Cosmic Caps from one dead drop to another within 2 days. Or keep it... | Grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, 1 PGR, 1 Fertilizer) and 100 XP |
 | Party Bus | Chad Chaddington | **Spread the Word.** Invite 5 townspeople to the Party Bus. Some will say no. | $2,500, 5 Energy Drinks and 100 XP |
 
-**Krystal's Cosmic Caps** are a shroom product only Krystal has: $98 a unit (about $1,960 a brick), with Euphoric, Calming, Thought-Provoking, Glowie and the exclusive **Cosmic** effect, which slows down NPCs who take it a little. They can't be grown, cooked or mixed. You're free to keep the brick instead of delivering it, but if it isn't delivered in time (or the hippies leave first), they lose **1.0** relationship with you.
+**Krystal's Cosmic Caps** are a shroom product only Krystal has: $98 a unit (about $1,960 a brick), with the exclusive **Cosmic** effect, which slows down NPCs who take it a little. They can't be grown, cooked or mixed. You're free to keep the brick instead of delivering it, but if it isn't delivered in time (or the hippies leave first), they lose **1.0** relationship with you.
 
 The bikers' and businessmen's jobs involve violence against an NPC. The target is a new character made for the job, with a random name and look each time.
 

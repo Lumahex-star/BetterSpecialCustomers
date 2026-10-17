@@ -5,7 +5,7 @@ using S1API.Console;                // ConsoleItemAliases
 using S1API.Entities;               // NPC
 using S1API.Items;                  // ItemManager, LegalStatus
 using S1API.Products;               // CustomProductItemCreator, ProductKindBuilder, Quality, ...
-using S1API.Properties;             // EffectCreator, Property
+using S1API.Properties;             // EffectCreator, CustomEffect
 using UnityEngine;
 #if MONO
 using GameRegistry = ScheduleOne.Registry;
@@ -89,7 +89,7 @@ namespace BetterSpecialCustomers.Quests
                     .WithName("Krystal's Cosmic Caps")
                     .WithDescription("Krystal Bird's own blend. The hippies would very much like it back.")
                     .WithProductPrice(PricePerUnit)
-                    .WithProperties(Property.Euphoric, Property.Calming, Property.ThoughtProvoking, Property.Glowie, _cosmic)
+                    .WithProperty(_cosmic)
                     .WithLegalStatus(LegalStatus.Illegal)
                     .WithDefaultQuality(Quality.Premium)
                     .WithRepresentationsFrom(template)
