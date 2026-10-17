@@ -6,6 +6,14 @@ Make the Special Customer groups worth your time. They buy far more, they rememb
 
 ---
 
+## New in 1.1.0
+
+- **Krystal's Cosmic Caps:** the hippies' job now hands you a brick of an exclusive purple shroom. Deliver it, or keep it and face the hippies.
+- **Settings:** change the buy cap, relationship numbers and quest rewards from your mod manager.
+- **Sturdier saving** of relationships. Your 1.0.0 saves carry over.
+
+---
+
 ## What it does
 
 ### Higher buy limits
@@ -22,7 +30,7 @@ Every Special Customer group now has its own relationship with you, from 0 to 5,
 At the top rank and top relationship a group can buy up to **300 units**.
 
 ### Quests from the group leaders
-Open a leader's dialogue and ask for work. Each visit there is a **50% chance** they have a job (decided once per visit). Finishing a job pays its reward and adds **+0.5** to your relationship with the group. Each job can be done once per visit, and an unfinished job is dropped when the group leaves.
+Open a leader's dialogue and ask for work. Each visit there is a **50% chance** they have a job (decided once per visit, and adjustable in the settings). Finishing a job pays its reward and adds **+0.5** to your relationship with the group. Each job can be done once per visit, and an unfinished job is dropped when the group leaves.
 
 | Group | Leader | Job | Reward |
 |---|---|---|---|
@@ -31,9 +39,23 @@ Open a leader's dialogue and ask for work. Each visit there is a **50% chance** 
 | Hippies | Krystal Bird | **Special Delivery.** Carry a brick of Krystal's Cosmic Caps from one dead drop to another within 2 days. Or keep it... | Grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, 1 PGR, 1 Fertilizer) and 100 XP |
 | Party Bus | Chad Chaddington | **Spread the Word.** Invite 5 townspeople to the Party Bus. Some will say no. | $2,500, 5 Energy Drinks and 100 XP |
 
-**Krystal's Cosmic Caps** are a shroom product only Krystal has: $98 a unit (about $1,960 a brick), with the exclusive **Cosmic** effect, which slows down NPCs who take it a little. They can't be grown, cooked or mixed. You're free to keep the brick instead of delivering it, but if it isn't delivered in time (or the hippies leave first), they lose **1.0** relationship with you.
+### Krystal's Cosmic Caps
+A shroom product only Krystal has, and the package in the hippies' job.
+
+- **$98 a unit** (1.5x regular shrooms), about **$1,960** a brick of 20.
+- The exclusive **Cosmic** effect: NPCs who take it move a little slower.
+- **40% addictive**, deep purple with violet and teal spots, as a brick and unpacked.
+- Can't be grown, cooked or mixed.
+- **Deliver it** to the second dead drop within 2 days and the hippies collect it, then tell Krystal for your reward.
+- **Or keep it.** If it isn't delivered in time, or the hippies leave town first, the job fails, the hippies lose **1.0** relationship with you, and the shrooms are added to your Product Manager so you can sell them. Unpacking the brick counts as keeping it.
 
 The bikers' and businessmen's jobs involve violence against an NPC. The target is a new character made for the job, with a random name and look each time.
+
+### Settings
+Your mod manager's config editor (r2modman, Gale, Thunderstore Mod Manager) shows two sections, or edit `UserData/MelonPreferences.cfg` by hand with the game closed. They appear after you've started the game once with the mod. Restart the game after changing them.
+
+- **Buy Limits & Relationships:** max buy quantity (200), starting relationship (2.5), buy multiplier at relationship 0 and 5 (x0.5 and x1.5), relationship gained per visit (0.5), share of the limit you must sell for it (75%), penalties for punching, aiming at, pickpocketing and killing customers (0.25, 0.25, 0.25, 1.0) and their cooldown (20 seconds).
+- **Quests:** chance a leader has a job (50%), relationship reward (0.5), XP reward (100), cash for the bikers', businessmen's and Party Bus jobs ($5,000, $5,000, $2,500), and a debug mode.
 
 ---
 
@@ -41,7 +63,7 @@ The bikers' and businessmen's jobs involve violence against an NPC. The target i
 
 - Schedule I
 - [MelonLoader](https://melonwiki.xyz/)
-- [S1API](https://github.com/ifBars/S1API) (used by the quests). You must use the latest BETA RELEASE of S1API.
+- [S1API](https://github.com/ifBars/S1API) **3.2.1 or later** (used by the quests). Older versions don't support Krystal's Cosmic Caps.
 
 ## Installation
 
@@ -52,16 +74,18 @@ The bikers' and businessmen's jobs involve violence against an NPC. The target i
    - `BetterSpecialCustomers_IL2Cpp.dll` for the IL2CPP version
 4. Start the game.
 
+**Updating from 1.0.0:** replace the `.dll` and update S1API. Your relationships carry over. If you saved in the middle of Krystal's job, the old package in the drop becomes a brick of Cosmic Caps, so pick it up again.
+
 ## Compatibility and known issues
 
 - **Both builds exist, but the Mono build has had the most testing.** The IL2CPP build is newer and less tested.
-- **Multiplayer:** relationships are tracked by the host. Other players' screens (for example the arrival popup) may show the normal number without the relationship bonus. Quest XP is awarded by the host.
+- **Multiplayer:** relationships are tracked by the host. Other players' screens (for example the arrival popup) may show the normal number without the relationship bonus. Quest XP is awarded by the host. **Every player needs the mod**, because Krystal's Cosmic Caps only exist with it.
+- **Removing the mod:** your save still loads, but any Krystal's Cosmic Caps in it disappear.
 - **Quests are new.** Some quest NPC outfits use items that may not exist in every game version. A missing item is skipped and logged instead of crashing.
-- **Settings:** the buy cap, relationship numbers and quest rewards can be changed in your mod manager's config editor (r2modman, Gale, Thunderstore Mod Manager), or by hand in `UserData/MelonPreferences.cfg` with the game closed. Restart the game after changing them.
 
 ## Reporting problems
 
-Please include your `MelonLoader/Latest.log` and say whether you use the Mono or IL2CPP version. Lines starting with `[BetterSpecialCustomers]` and `[quest]` are the useful ones.
+Please include your `MelonLoader/Latest.log` and say whether you use the Mono or IL2CPP version. Lines starting with `[BetterSpecialCustomers]`, `[quest]` and `[shrooms]` are the useful ones.
 
 ## Credits
 
