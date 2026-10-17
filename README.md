@@ -63,8 +63,8 @@ The hippies' package is a brick of **Krystal's Cosmic Caps**, a shroom product a
 
 - **Multiplayer:** relationships are tracked by the host. Other players' screens (for example the arrival popup) may show the normal, relationship-free number.
 - **Quests are new and lightly tested.** In particular the IL2CPP build, multiplayer clients, and the exact clothing items on the quest NPCs (a missing item is logged and skipped).
-- **Debug mode:** set `DebugMode` to `true` in `Quests/QuestFramework.cs` to guarantee a job and repeat it as often as you like within a visit.
-- **Tuning:** the numbers above are constants in `Relationships/GroupRelationships.cs` (starting value, bonus range, gain per visit, and the 75% requirement) and `Patches/MaxBuyLimitPatch.cs` (the 200 cap).
+- **Settings:** the buy cap, relationship numbers (starting value, multiplier range, gain per visit, the 75% requirement, penalties and their cooldown) and quest numbers (job chance, cash/XP/relationship rewards, debug mode) are MelonLoader preferences, in two sections of `UserData/MelonPreferences.cfg`. Mod managers such as r2modman, Gale and Thunderstore Mod Manager show them as a settings page; you can also edit the file by hand with the game closed. Krystal's shrooms are still tuned in `Quests/KrystalsShrooms.cs` and `Quests/HippiesQuest.cs`.
+- **Debug mode:** turn on the `DebugMode` setting to guarantee a job and repeat it as often as you like within a visit.
 
 ## Building
 

@@ -57,7 +57,7 @@ The bikers' and businessmen's jobs involve violence against an NPC. The target i
 - **Both builds exist, but the Mono build has had the most testing.** The IL2CPP build is newer and less tested.
 - **Multiplayer:** relationships are tracked by the host. Other players' screens (for example the arrival popup) may show the normal number without the relationship bonus. Quest XP is awarded by the host.
 - **Quests are new.** Some quest NPC outfits use items that may not exist in every game version. A missing item is skipped and logged instead of crashing.
-- **There is no config file yet.** The numbers (the 200 cap, the relationship range, rewards) are set in the code. If you want something adjustable, tell me.
+- **Settings:** the buy cap, relationship numbers and quest rewards can be changed in your mod manager's config editor (r2modman, Gale, Thunderstore Mod Manager), or by hand in `UserData/MelonPreferences.cfg` with the game closed. Restart the game after changing them.
 
 ## Reporting problems
 

@@ -189,6 +189,7 @@ namespace BetterSpecialCustomers.Quests
         {
             QuestIdPrefix = "bikers_informant_quest",
             RewardLogLabel = "Diesel's informant job",
+            CashReward = () => ModConfig.BikersCashReward.Value,
             GetSave = () => BikersQuestSave.Instance?.Data,
             PickName = Informant.PickName,
             RefreshTarget = Informant.Refresh,

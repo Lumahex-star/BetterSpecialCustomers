@@ -278,7 +278,7 @@ namespace BetterSpecialCustomers.Quests
         {
             QuestIdPrefix = "hippies_package_quest",
             RewardLogLabel = "Krystal's package job",
-            CashReward = 0f,                       // the hippies pay in grow supplies, not money
+            // no CashReward: the hippies pay in grow supplies, not money
             GetSave = () => HippiesQuestSave.Instance?.Data,
             PickName = () => string.Empty,         // no target to name
             RefreshTarget = HippiesTask.Refresh,

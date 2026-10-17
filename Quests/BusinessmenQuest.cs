@@ -182,6 +182,7 @@ namespace BetterSpecialCustomers.Quests
         {
             QuestIdPrefix = "businessmen_audit_quest",
             RewardLogLabel = "Johnny's audit job",
+            CashReward = () => ModConfig.BusinessmenCashReward.Value,
             GetSave = () => BusinessmenQuestSave.Instance?.Data,
             PickName = Auditor.PickName,
             RefreshTarget = Auditor.Refresh,

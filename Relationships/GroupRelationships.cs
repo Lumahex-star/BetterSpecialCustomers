@@ -30,22 +30,24 @@ public static class GroupRelationships
     public const float Min = 0f;
     public const float Max = 5f;
 
-    // New groups start in the middle of the scale ("Neutral"), where the multiplier is exactly 1.0,
+    // The tunable numbers below come from ModConfig (defaults in brackets).
+
+    // New groups start in the middle of the scale ("Neutral", 2.5), where the multiplier is exactly 1.0,
     // so a fresh save behaves like it did before this feature existed.
-    public const float DefaultValue = 2.5f;
+    public static float DefaultValue => ModConfig.StartingRelationship.Value;
 
-    // Buy quantity multiplier at relationship 0 and 5. It is a straight line between the two, the same
+    // Buy quantity multiplier at relationship 0 and 5 (x0.5 and x1.5). It is a straight line between the two, the same
     // Mathf.Lerp(min, max, delta / 5) pattern the game uses for Supplier order limits.
-    public const float MultiplierAtMin = 0.5f;
-    public const float MultiplierAtMax = 1.5f;
+    public static float MultiplierAtMin => ModConfig.MultiplierAtWorst.Value;
+    public static float MultiplierAtMax => ModConfig.MultiplierAtBest.Value;
 
-    // Relationship gained per visit, no matter how many sales the player makes during it.
+    // Relationship gained per visit (0.5), no matter how many sales the player makes during it.
     // (For comparison, a vanilla customer deal changes relationship by -0.5 to +0.5.)
-    public const float GainPerVisit = 0.5f;
+    public static float GainPerVisit => ModConfig.GainPerVisit.Value;
 
-    // The gain is only given once the player has sold, over the whole visit, at least this fraction of the
+    // The gain is only given once the player has sold, over the whole visit, at least this fraction (0.75) of the
     // group's buy limit (the limit shown on the handover screen, which refills each morning).
-    public const float MinFractionOfLimitForGain = 0.75f;
+    public static float MinFractionOfLimitForGain => ModConfig.SalesNeededForGain.Value;
 
     private class State
     {

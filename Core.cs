@@ -26,6 +26,7 @@ namespace BetterSpecialCustomers
         public override void OnInitializeMelon()
         {
             LoggerInstance.Msg("Initialized.");
+            ModConfig.Init();
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.Probe();
             // Patch each class separately (instead of PatchAll) so one failing patch can't stop the others.
             BetterSpecialCustomers.Diagnostics.PatchDiagnostics.PatchAllClasses(HarmonyInstance);
