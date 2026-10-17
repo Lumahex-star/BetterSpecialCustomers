@@ -59,7 +59,7 @@ public class RelationshipArrivalPatch
     }
 
     // IL2CPP only: the game has now stored the group's starting and remaining buy quantity; make sure they are ours.
-    public static void Postfix(SpecialCustomerManager __instance) => BuyLimitFieldSync.PushToLeader(__instance, arrival: true);
+    public static void Postfix(SpecialCustomerManager __instance) => BuyLimitFieldSync.PushToLeader(__instance, BuyLimitFieldSync.Moment.Arrival);
 }
 
 // SpecialCustomerManager.UpdatePhase() runs once a day. While a group is in town (phase 2, Arrival) it either brings the
@@ -71,7 +71,19 @@ public class BuyLimitRefillPatch
     public static void Postfix(SpecialCustomerManager __instance)
     {
         PatchDiagnostics.Hit("BuyLimitRefillPatch (daily phase update)");
-        BuyLimitFieldSync.PushToLeader(__instance, arrival: false);
+        BuyLimitFieldSync.PushToLeader(__instance, BuyLimitFieldSync.Moment.Refill);
+    }
+}
+
+// SpecialCustomerManager.Load() restores a save, including the group in town and its remaining budget. On IL2CPP the
+// starting quantity it ends up with can still be the game's own, which the handover screen shows as the limit.
+[HarmonyPatch(typeof(SpecialCustomerManager), nameof(SpecialCustomerManager.Load))]
+public class BuyLimitLoadPatch
+{
+    public static void Postfix(SpecialCustomerManager __instance)
+    {
+        PatchDiagnostics.Hit("BuyLimitLoadPatch (save loaded)");
+        BuyLimitFieldSync.PushToLeader(__instance, BuyLimitFieldSync.Moment.Load);
     }
 }
 

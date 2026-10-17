@@ -150,12 +150,20 @@ internal static class BuyLimitFieldSync
     }
 #endif
 
+    // When PushToLeader is called, which decides what it may overwrite.
+    public enum Moment
+    {
+        Arrival, // the group has just arrived: its budget is full
+        Refill,  // the daily phase update: a group in town has just been refilled
+        Load,    // a save was loaded: the remaining amount is the saved one and must be kept
+    }
+
     /// <summary>
-    /// Writes our limit over the one the game just stored for the group in town. Called after the game sets it:
-    /// on arrival (starting and remaining quantity) and after the daily phase update, which refills a group in town
-    /// (remaining quantity and the saved RunningBudget). Host only, like the game's own setters. Does nothing on Mono.
+    /// Writes our limit over the one the game stored for the group in town. The handover screen shows
+    /// "sold / starting quantity", so the starting quantity is always set; the remaining quantity (and the saved
+    /// RunningBudget) only when the game has just filled it. Host only, like the game's own setters. Does nothing on Mono.
     /// </summary>
-    public static void PushToLeader(SpecialCustomerManager manager, bool arrival)
+    public static void PushToLeader(SpecialCustomerManager manager, Moment moment)
     {
 #if IL2CPP
         try
@@ -167,23 +175,18 @@ internal static class BuyLimitFieldSync
             var leader = manager._leaderInstance;
             if (save == null || group == null || leader == null)
                 return;
-            if (!arrival && (int)save.Phase != 2)
-                return; // the group isn't in town, so there was no refill
+            if (moment != Moment.Arrival && (int)save.Phase != 2)
+                return; // the group isn't in town
 
             int limit = TargetLimit(group, group.GroupId);
-            if (arrival)
-            {
-                leader.SetStartingBuyQuantity(limit);
-                leader.SetRemainingBuyQuantity(limit); // a save loaded mid-visit puts its own remaining amount back right after
-            }
-            else
-            {
+            leader.SetStartingBuyQuantity(limit);
+            if (moment == Moment.Refill)
                 save.RunningBudget = limit;
-                leader.SetRemainingBuyQuantity(limit);
-            }
+            if (moment != Moment.Load)
+                leader.SetRemainingBuyQuantity(limit); // a save loaded mid-visit puts its own remaining amount back right after an arrival
 
             if (PatchDiagnostics.Enabled)
-                Melon<Core>.Logger.Msg($"[diag] BuyLimitFieldSync.PushToLeader [{group.GroupId}]: limit {limit} ({(arrival ? "arrival" : "morning refill")})");
+                Melon<Core>.Logger.Msg($"[diag] BuyLimitFieldSync.PushToLeader [{group.GroupId}]: limit {limit} ({moment})");
         }
         catch (Exception ex)
         {
