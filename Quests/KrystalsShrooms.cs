@@ -16,6 +16,7 @@ using GameProductItemInstance = ScheduleOne.Product.ProductItemInstance;
 using GameShroomDefinition = ScheduleOne.Product.ShroomDefinition;
 using GamePackagingDefinition = ScheduleOne.Product.Packaging.PackagingDefinition;
 using GameProductStored = ScheduleOne.Product.Product_Stored;
+using GameShroomVisualsSetter = ScheduleOne.Product.ShroomVisualsSetter;
 using GameQuality = ScheduleOne.ItemFramework.EQuality;
 #elif IL2CPP
 using GameRegistry = Il2CppScheduleOne.Registry;
@@ -26,6 +27,7 @@ using GameProductItemInstance = Il2CppScheduleOne.Product.ProductItemInstance;
 using GameShroomDefinition = Il2CppScheduleOne.Product.ShroomDefinition;
 using GamePackagingDefinition = Il2CppScheduleOne.Product.Packaging.PackagingDefinition;
 using GameProductStored = Il2CppScheduleOne.Product.Product_Stored;
+using GameShroomVisualsSetter = Il2CppScheduleOne.Product.ShroomVisualsSetter;
 using GameQuality = Il2CppScheduleOne.ItemFramework.EQuality;
 #endif
 
@@ -49,8 +51,13 @@ namespace BetterSpecialCustomers.Quests
         // How addictive the product is (0 to 1). Cosmic adds nothing on top, so this is the final value.
         private const float Addictiveness = 0.4f;
 
-        // The deep purple the brick (and the Cosmic label's product colour) is tinted with.
-        private static readonly Color DeepPurple = new Color(0.4f, 0.12f, 0.65f);
+        // The look, in the terms of the game's own ShroomAppearanceSettings. The game normally works these out from a
+        // product's effects (ShroomDefinition.GetAppearanceSettings); with Cosmic as the only effect that would give
+        // mostly pale lavender caps, so Krystal's are set here.
+        private static readonly Color32 PrimaryColor = new Color32(74, 20, 140, 255);    // deep purple
+        private static readonly Color32 SecondaryColor = new Color32(150, 90, 210, 255); // lighter violet
+        private const bool HasSpots = true;
+        private static readonly Color32 SpotsColor = new Color32(115, 230, 215, 255);    // cosmic teal
 
         // Cosmic: NPCs who take it move this much slower (0.9 = 10% slower).
         private const float CosmicNpcSpeedFactor = 0.9f;
@@ -64,8 +71,9 @@ namespace BetterSpecialCustomers.Quests
         private static CustomProductDefinition _definition;
         private static bool _brickVisualRegistered;
         private static bool _looseVisualRegistered;
-        private static string _templateId;
         private static GameObject _looseVisual;
+        private static Material _mushroomMaterial; // loose shrooms
+        private static Material _bulkMaterial;     // the brick's contents
 
         // NPCs currently slowed by Cosmic, so the slowdown is applied and removed once each.
         private static readonly HashSet<string> SlowedNpcs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -92,7 +100,6 @@ namespace BetterSpecialCustomers.Quests
                     .WithCompatibilityDrugType(DrugType.Shrooms) // shroom customers treat it as shrooms
                     .Build();
                 _cosmic ??= BuildCosmicEffect();
-                _templateId = template.ID;
                 RegisterBrickVisual();
                 RegisterLooseVisual(); // must come before the definition is built
 
@@ -119,8 +126,14 @@ namespace BetterSpecialCustomers.Quests
             }
         }
 
+        // The game's base shroom product, the one every shroom mix starts from.
+        private static GameShroomDefinition DefaultShroom() => GameProductManager.Instance?.DefaultShroom;
+
         private static ProductDefinition FindShroomTemplate()
         {
+            var defaultShroom = DefaultShroom();
+            if (defaultShroom != null && ItemManager.GetDefinition(defaultShroom.ID) is ProductDefinition basic) return basic;
+
             foreach (string id in ShroomTemplateIds)
                 if (ItemManager.GetDefinition(id) is ProductDefinition found) return found;
 
@@ -148,7 +161,7 @@ namespace BetterSpecialCustomers.Quests
                 .WithBasicInfo(CosmicEffectId, "Cosmic", "You can see the universe breathing.")
                 .WithTier(3)
                 .WithAddictiveness(0f) // the product's own addictiveness covers it
-                .WithColors(productColor: DeepPurple, labelColor: new Color(0.45f, 0.9f, 0.85f))
+                .WithColors(productColor: PrimaryColor, labelColor: new Color(0.45f, 0.9f, 0.85f))
                 .WithNpcBehavior(SlowNpc)
                 .WithNpcClearBehavior(RestoreNpc)
                 .Build();
@@ -181,29 +194,84 @@ namespace BetterSpecialCustomers.Quests
             }
         }
 
-        // A brick has no reusable shell, so S1API needs its look registered: the game's own shroom brick, tinted deep purple.
+        // ---- Look ----
+        // Shrooms are coloured by the game's own shroom shaders: a mushroom material (cap, stem, underside and spot
+        // colours) on loose shrooms and a bulk material (primary, secondary and spot colours) inside bricks. The game's
+        // ShroomVisualsSetter only colours products that are ShroomDefinitions, which Krystal's (a generic custom product)
+        // is not, so we let it apply the regular shrooms' materials and then swap in copies with Krystal's colours.
+
+        // Builds Krystal's two materials from the regular shrooms', with the colour recipe of the game's
+        // ShroomDefinition.GenerateMaterials. False (logged) if the regular shrooms' materials can't be found.
+        private static bool EnsureMaterials()
+        {
+            if (_mushroomMaterial != null && _bulkMaterial != null) return true;
+            var shroom = DefaultShroom();
+            if (shroom == null || shroom.ShroomMaterial == null || shroom.BulkMaterial == null)
+            {
+                Melon<Core>.Logger.Warning("[shrooms] the regular shrooms' materials weren't found; Krystal's keep the regular colours");
+                return false;
+            }
+
+            Color primary = PrimaryColor, secondary = SecondaryColor;
+            Color spots = HasSpots ? (Color)SpotsColor : Color.clear;
+
+            _mushroomMaterial = new Material(shroom.ShroomMaterial) { hideFlags = HideFlags.DontUnloadUnusedAsset };
+            _mushroomMaterial.SetColor("_CapInnerColor", primary);
+            _mushroomMaterial.SetColor("_CapOuterColor", Color.Lerp(primary, secondary, 0.7f));
+            _mushroomMaterial.SetColor("_StemLowerColor", primary);
+            _mushroomMaterial.SetColor("_StemUpperColor", Color.Lerp(secondary, Color.white, 0.3f));
+            _mushroomMaterial.SetColor("_UnderColor", Color.Lerp(primary, new Color32(80, 80, 80, 255), 0.6f));
+            _mushroomMaterial.SetColor("_SpotsColor", spots);
+
+            _bulkMaterial = new Material(shroom.BulkMaterial) { hideFlags = HideFlags.DontUnloadUnusedAsset };
+            _bulkMaterial.SetColor("_PrimaryColor", primary);
+            _bulkMaterial.SetColor("_SecondaryColor", secondary);
+            _bulkMaterial.SetColor("_SpotsColor", spots);
+            return true;
+        }
+
+        // Swaps the regular shrooms' materials on a renderer for Krystal's; anything else (like the brick's wrapping)
+        // is left alone. True if anything changed.
+        private static bool Recolor(Renderer renderer)
+        {
+            var shroom = DefaultShroom();
+            var materials = renderer.sharedMaterials;
+            bool changed = false;
+            for (int i = 0; i < materials.Length; i++)
+            {
+                var material = materials[i];
+                if (material == null) continue;
+                if (material == shroom.ShroomMaterial || material.HasProperty("_CapInnerColor"))
+                    materials[i] = _mushroomMaterial;
+                else if (material == shroom.BulkMaterial || (material.HasProperty("_PrimaryColor") && material.HasProperty("_SecondaryColor")))
+                    materials[i] = _bulkMaterial;
+                else
+                    continue;
+                changed = true;
+            }
+            if (changed) renderer.sharedMaterials = materials;
+            return changed;
+        }
+
+        // A brick has no reusable shell, so S1API needs its look registered: the game's own shroom brick, recoloured.
         private static void RegisterBrickVisual()
         {
             if (_brickVisualRegistered) return;
             var profile = new ProductPackagingContentProfileBuilder()
-                .WithNativeFilledVisualScaffold(ProductPackagingVisualTemplate.Shrooms, TintBrick)
+                .WithNativeFilledVisualScaffold(ProductPackagingVisualTemplate.Shrooms, ColorBrick)
                 .Build();
             ProductPackagingContentProfileRegistry.Register(OwnerId, ProductId, BrickPackagingId, profile);
             _brickVisualRegistered = true;
         }
 
-        private static void TintBrick(GameObject clone)
+        private static void ColorBrick(GameObject clone)
         {
+            if (!EnsureMaterials()) return;
+            var shroom = DefaultShroom();
+            foreach (var setter in clone.GetComponentsInChildren<GameShroomVisualsSetter>(true))
+                setter.ApplyVisuals(shroom); // the regular shroom materials first, in case the scaffold has placeholders
             foreach (var renderer in clone.GetComponentsInChildren<Renderer>(true))
-                Tint(renderer.material); // a per-clone copy, so the game's shared brick material is untouched
-        }
-
-        // The colour multiplies the material's texture, so its detail stays visible.
-        private static void Tint(Material material)
-        {
-            foreach (string property in new[] { "_BaseColor", "_Color" })
-                if (material.HasProperty(property))
-                    material.SetColor(property, DeepPurple);
+                Recolor(renderer);
         }
 
         // Loose (unpacked) shrooms: S1API swaps the borrowed look for this visual everywhere a loose product shows
@@ -219,70 +287,64 @@ namespace BetterSpecialCustomers.Quests
             _looseVisualRegistered = true;
         }
 
-        // Copies the regular shrooms' meshes into a hidden object with deep purple materials. Built once and reused; S1API
-        // clones it wherever it is needed. Null (logged) if the regular shrooms' model can't be found, which leaves the
-        // borrowed look.
+        // A hidden copy of the regular shrooms' model in Krystal's colours. Built once and reused; S1API clones it wherever
+        // it is needed. Null (logged) if it can't be built, which leaves the borrowed look.
         private static GameObject BuildLooseVisual()
         {
             if (_looseVisual != null) return _looseVisual;
-
-            var definition = GameRegistry.GetItem(_templateId);
-#if MONO
-            var template = definition as GameProductDefinition;
-#else
-            var template = definition?.TryCast<GameProductDefinition>();
-#endif
-            var stored = template?.StoredItem;
-            var productStored = stored != null ? stored.GetComponent<GameProductStored>() : null;
-            Transform container = productStored?.Visuals?.VisualsContainer ?? stored?.transform;
-            if (container == null)
+            var shroom = DefaultShroom();
+            var stored = shroom?.StoredItem;
+            if (stored == null || !EnsureMaterials())
             {
-                Melon<Core>.Logger.Warning($"[shrooms] no model found on '{_templateId}'; loose shrooms keep the regular look");
+                Melon<Core>.Logger.Warning("[shrooms] no regular shroom model found; loose shrooms keep the regular look");
                 return null;
             }
 
+            // Clone the regular model under a hidden parent (so none of its scripts wake up) and let the game put its
+            // shroom materials on it, then copy only the meshes, so none of its scripts come along.
+            var scratch = new GameObject("KrystalsCosmicCaps_Scratch");
+            scratch.SetActive(false);
             var root = new GameObject("KrystalsCosmicCaps_Loose");
             root.SetActive(false);
             UnityEngine.Object.DontDestroyOnLoad(root);
-
-            // Only meshes and materials are copied, so none of the game's scripts on the model come along.
-            var tinted = new Dictionary<Material, Material>();
-            foreach (var filter in container.GetComponentsInChildren<MeshFilter>(true))
+            bool recolored = false;
+            try
             {
-                var renderer = filter.GetComponent<MeshRenderer>();
-                if (renderer == null || filter.sharedMesh == null) continue;
+                var model = UnityEngine.Object.Instantiate(stored.gameObject, scratch.transform);
+                foreach (var setter in model.GetComponentsInChildren<GameShroomVisualsSetter>(true))
+                    setter.ApplyVisuals(shroom);
+                var visuals = model.GetComponent<GameProductStored>()?.Visuals;
+                Transform container = visuals != null && visuals.VisualsContainer != null ? visuals.VisualsContainer : model.transform;
 
-                var part = new GameObject(filter.name);
-                part.transform.SetParent(root.transform, false);
-                part.transform.localPosition = container.InverseTransformPoint(filter.transform.position);
-                part.transform.localRotation = Quaternion.Inverse(container.rotation) * filter.transform.rotation;
-                Vector3 scale = filter.transform.lossyScale, parentScale = container.lossyScale;
-                part.transform.localScale = new Vector3(scale.x / parentScale.x, scale.y / parentScale.y, scale.z / parentScale.z);
-                part.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
-
-                var sources = renderer.sharedMaterials;
-                var materials = new Material[sources.Length];
-                for (int i = 0; i < sources.Length; i++)
+                foreach (var filter in container.GetComponentsInChildren<MeshFilter>(true))
                 {
-                    var source = sources[i];
-                    if (source == null) continue;
-                    if (!tinted.TryGetValue(source, out var copy))
-                    {
-                        copy = new Material(source);
-                        Tint(copy);
-                        tinted[source] = copy;
-                    }
-                    materials[i] = copy;
+                    var renderer = filter.GetComponent<MeshRenderer>();
+                    if (renderer == null || filter.sharedMesh == null) continue;
+
+                    var part = new GameObject(filter.name);
+                    part.transform.SetParent(root.transform, false);
+                    part.transform.localPosition = container.InverseTransformPoint(filter.transform.position);
+                    part.transform.localRotation = Quaternion.Inverse(container.rotation) * filter.transform.rotation;
+                    Vector3 scale = filter.transform.lossyScale, parentScale = container.lossyScale;
+                    part.transform.localScale = new Vector3(scale.x / parentScale.x, scale.y / parentScale.y, scale.z / parentScale.z);
+                    part.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                    var copy = part.AddComponent<MeshRenderer>();
+                    copy.sharedMaterials = renderer.sharedMaterials;
+                    recolored |= Recolor(copy);
                 }
-                part.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(scratch);
             }
 
             if (root.transform.childCount == 0)
             {
                 UnityEngine.Object.Destroy(root);
-                Melon<Core>.Logger.Warning($"[shrooms] '{_templateId}' has no meshes to copy; loose shrooms keep the regular look");
+                Melon<Core>.Logger.Warning("[shrooms] the regular shroom model has no meshes; loose shrooms keep the regular look");
                 return null;
             }
+            if (!recolored) Melon<Core>.Logger.Warning("[shrooms] no shroom materials found on the loose model; it keeps the regular colours");
 
             _looseVisual = root;
             return root;
