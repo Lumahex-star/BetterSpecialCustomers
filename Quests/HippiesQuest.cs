@@ -99,6 +99,17 @@ namespace BetterSpecialCustomers.Quests
             return false;
         }
 
+        // The hippies collect the brick: it leaves the drop the moment it is delivered, so it can't be taken back out.
+        private static void CollectBrick(GameDeadDrop drop)
+        {
+            foreach (var slot in drop.Storage.ItemSlots)
+            {
+                if (!KrystalsShrooms.IsBrick(slot.ItemInstance)) continue;
+                slot.ClearStoredInstance();
+                return;
+            }
+        }
+
         private static void RemoveAll(GameDeadDrop drop, string itemId)
         {
             foreach (var slot in drop.Storage.ItemSlots)
@@ -230,8 +241,10 @@ namespace BetterSpecialCustomers.Quests
                     Melon<Core>.Logger.Msg("[quest] package picked up");
                 }
 
-                if (HasBrick(FindDrop(run.ToGuid)))
+                var to = FindDrop(run.ToGuid);
+                if (HasBrick(to))
                 {
+                    CollectBrick(to);
                     run.Delivered = true;
                     job.OnObjectiveDone();
                     return;
