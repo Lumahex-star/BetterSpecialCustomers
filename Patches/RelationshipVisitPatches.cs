@@ -57,6 +57,22 @@ public class RelationshipArrivalPatch
         // The relationship was just updated above, so bring the game's own numbers in line with it.
         BuyLimitFieldSync.Apply(__instance, groupId);
     }
+
+    // IL2CPP only: the game has now stored the group's starting and remaining buy quantity; make sure they are ours.
+    public static void Postfix(SpecialCustomerManager __instance) => BuyLimitFieldSync.PushToLeader(__instance, arrival: true);
+}
+
+// SpecialCustomerManager.UpdatePhase() runs once a day. While a group is in town (phase 2, Arrival) it either brings the
+// group in (RunArrivalPhase, above) or refills the group's budget for the new day, both from the buy limit. In both
+// cases the group's budget should be full afterwards, so on IL2CPP we write our limit over it (see BuyLimitFieldSync).
+[HarmonyPatch(typeof(SpecialCustomerManager), "UpdatePhase")]
+public class BuyLimitRefillPatch
+{
+    public static void Postfix(SpecialCustomerManager __instance)
+    {
+        PatchDiagnostics.Hit("BuyLimitRefillPatch (daily phase update)");
+        BuyLimitFieldSync.PushToLeader(__instance, arrival: false);
+    }
 }
 
 // SpecialCustomerManager.RemoveCustomerGroup() is called when the group packs up and leaves (and when a
