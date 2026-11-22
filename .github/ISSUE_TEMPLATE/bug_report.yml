@@ -1,0 +1,128 @@
+name: Bug report
+description: Something in the mod isn't working the way it should.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! The more detail you give, the faster it can be fixed.
+        Please check the [open issues](https://github.com/Lumahex-star/BetterSpecialCustomers/issues) first in case someone has already reported it.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the mod?
+      options:
+        - Buy limits
+        - Relationships
+        - "Quest: Loose Lips (Bikers)"
+        - "Quest: The Audit (Businessmen)"
+        - "Quest: Special Delivery (Hippies)"
+        - "Quest: Spread the Word (Party Bus)"
+        - Krystal's Cosmic Caps
+        - Settings
+        - Saving / loading
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. Screenshots or clips are very welcome.
+      placeholder: Diesel gave me the job, but the informant never came out when I knocked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: The informant should come out of the building after I knock.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can someone else make the bug happen?
+      placeholder: |
+        1. Wait for the bikers to visit
+        2. Ask Diesel Rodd for a job
+        3. Go to the building he names and knock on the door
+        4. Nothing comes out
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Sometimes
+        - It only happened once
+    validations:
+      required: true
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      placeholder: "1.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Game branch
+      description: Which build of Schedule I are you playing on?
+      options:
+        - IL2CPP (default Steam branch)
+        - Mono (alternate branch)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: loader-versions
+    attributes:
+      label: MelonLoader and S1API versions
+      placeholder: "MelonLoader 0.7.0, S1API 2.x"
+
+  - type: dropdown
+    id: multiplayer
+    attributes:
+      label: Single player or multiplayer?
+      options:
+        - Single player
+        - Multiplayer (host)
+        - Multiplayer (joined someone else)
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other mods installed
+      description: List any other mods you have, since they can sometimes clash.
+      placeholder: None, or a list of mod names
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log file
+      description: |
+        Please attach `MelonLoader/Latest.log` from your game folder (drag and drop the file here), or paste the relevant part.
+        Turning on `DebugMode` in the mod's settings adds extra detail to the log.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Any other context that might help.
