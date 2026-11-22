@@ -121,8 +121,9 @@ namespace BetterSpecialCustomers.Quests
             new Color32(30, 22, 18, 255), new Color32(60, 40, 28, 255), new Color32(95, 65, 40, 255),
             new Color32(120, 120, 120, 255), new Color32(190, 190, 190, 255),
         };
+        // Items are named by their ids in the game's outfit library (see the note on the informant's look in BikersQuest.cs).
         private static readonly string[] HairStyles =
-            { HairStyle.CloseBuzzCut, HairStyle.Peaked, HairStyle.Receding, HairStyle.Balding, HairStyle.MidFringe, HairStyle.SidePartBob };
+            { "closebuzzcut", "peaked", "receding", "balding", "midfringe", "side-partbob", "batemanhair" };
         private static readonly Color32[] ShirtColors =
         {
             new Color32(235, 235, 235, 255), new Color32(180, 200, 225, 255), new Color32(210, 210, 200, 255),
@@ -146,33 +147,32 @@ namespace BetterSpecialCustomers.Quests
             Appearance.Set<HairColor>(hair);
             Appearance.Set<HairStyle>(QuestNpcUtil.Pick(HairStyles));
 
-            Appearance.WithFaceLayer<Face>(UnityEngine.Random.value < 0.6f ? Face.Neutral : Face.SlightFrown, new Color(0.15f, 0.1f, 0.1f));
+            AppearanceUtil.WearFace<Face>(Appearance, new Color(0.15f, 0.1f, 0.1f), UnityEngine.Random.value < 0.6f ? "neutralface" : "slightfrown");
             if (UnityEngine.Random.value < 0.25f)
-                Appearance.WithFaceLayer<FacialHair>(FacialHair.Stubble, hair);
+                AppearanceUtil.WearFace<FacialHair>(Appearance, hair, "stubble");
 
             Color suit = QuestNpcUtil.Pick(SuitColors);
-            Appearance.WithBodyLayer<Shirts>(UnityEngine.Random.value < 0.8f ? Shirts.Buttonup : Shirts.RolledButtonUp, (Color)QuestNpcUtil.Pick(ShirtColors));
-            Appearance.WithBodyLayer<Pants>(Pants.Jeans, suit); // there are no dress trousers, so dark jeans in the suit's colour
-            AppearanceUtil.Wear<Chest>(Appearance, suit, Chest.Blazer);
-            AppearanceUtil.Wear<Feet>(Appearance, new Color(0.08f, 0.06f, 0.05f), Feet.DressShoes);
+            AppearanceUtil.Wear<Chest>(Appearance, (Color)QuestNpcUtil.Pick(ShirtColors), UnityEngine.Random.value < 0.8f ? "buttonupshirt" : "buttonupshirtrolled");
+            AppearanceUtil.Wear<Bottom>(Appearance, suit, "jeans"); // there are no dress trousers, so dark jeans in the suit's colour
+            if (!AppearanceUtil.Wear<Chest>(Appearance, suit, "blazer"))
+                AppearanceUtil.Wear<Chest>(Appearance, suit, "collarjacket");
+            AppearanceUtil.Wear<Feet>(Appearance, new Color(0.08f, 0.06f, 0.05f), "dressshoes");
 
-            // One tie from the game's four (the paths are guesses from the item ids; missing ones are logged and skipped).
-            string[] ties =
-            {
-                "Avatar/Accessories/Neck/StripedTie/StripedTie", "Avatar/Accessories/Neck/CheckedTie/CheckedTie",
-                "Avatar/Accessories/Neck/DottedTie/DottedTie", "Avatar/Accessories/Neck/CrossTie/CrossTie",
-            };
-            AppearanceUtil.Wear<Neck>(Appearance, new Color(0.35f, 0.08f, 0.1f), QuestNpcUtil.Pick(ties));
+            // One tie from the game's four.
+            AppearanceUtil.Wear<Neck>(Appearance, new Color(0.35f, 0.08f, 0.1f), QuestNpcUtil.Pick(new[] { "stripedtie", "checkedtie", "dottedtie", "crosstie" }));
 
             float extras = UnityEngine.Random.value;
-            if (extras < 0.35f)
-                AppearanceUtil.Wear<Head>(Appearance, Color.white, Head.RectangleFrameGlasses);
-            else if (extras < 0.5f)
-                AppearanceUtil.Wear<Head>(Appearance, Color.white, Head.SmallRoundGlasses);
+            if (extras < 0.3f)
+                AppearanceUtil.Wear<Head>(Appearance, Color.white, "rectangularframeglasses");
+            else if (extras < 0.45f)
+                AppearanceUtil.Wear<Head>(Appearance, Color.white, "smallroundglasses");
+            else if (extras < 0.55f)
+                AppearanceUtil.Wear<Head>(Appearance, Color.white, "batemanglasses");
             if (UnityEngine.Random.value < 0.5f)
-                AppearanceUtil.Wear<Hands>(Appearance, Color.white, Hands.Polex);
+                AppearanceUtil.Wear<Hands>(Appearance, Color.white, "polex");
 
             AppearanceUtil.ApplyNow(Appearance);
+            if (ModConfig.DebugMode.Value) AppearanceUtil.LogWornObjects(NpcId); // what actually ended up on him
         }
     }
 
