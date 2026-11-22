@@ -488,6 +488,7 @@ namespace BetterSpecialCustomers.Quests
                 if (CanResolve(path))
                 {
                     appearance.WithAccessoryLayer<T>(path, color);
+                    if (ModConfig.DebugMode.Value) Melon<Core>.Logger.Msg($"[quest] outfit accessory added: {path}");
                     return true;
                 }
                 WarnOnce(path, $"[quest] outfit path not found: {path}");
@@ -504,6 +505,7 @@ namespace BetterSpecialCustomers.Quests
                 if (CanResolve(path))
                 {
                     appearance.WithBodyLayer<T>(path, color);
+                    if (ModConfig.DebugMode.Value) Melon<Core>.Logger.Msg($"[quest] outfit layer added: {path}");
                     return true;
                 }
                 WarnOnce(path, $"[quest] outfit layer not found: {path}");

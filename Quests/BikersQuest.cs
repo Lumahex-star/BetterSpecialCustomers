@@ -270,6 +270,7 @@ namespace BetterSpecialCustomers.Quests
                 AppearanceUtil.Wear<Neck>(Appearance, Color.white, Neck.GoldChain, "Avatar/Accessories/Neck/SilverChain/SilverChain");
 
             AppearanceUtil.ApplyNow(Appearance);
+            if (ModConfig.DebugMode.Value) AppearanceUtil.LogWornObjects(NpcId); // what actually ended up on him
         }
     }
 
