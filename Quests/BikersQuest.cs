@@ -46,7 +46,9 @@ namespace BetterSpecialCustomers.Quests
             DefaultHideout,
             "Motel Office",
             "Bud's Bar",
-            "Hyland Auto",
+            "The Crimson Canary",
+            "Supermarket",
+
         };
 
         // How long he may be out of the building (after a knock) before he slips back in, and how far away the
