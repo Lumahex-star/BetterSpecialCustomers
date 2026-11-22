@@ -47,7 +47,6 @@ namespace BetterSpecialCustomers.Quests
             "Motel Office",
             "Bud's Bar",
             "Hyland Auto",
-            "Shred Shack",
         };
 
         // How long he may be out of the building (after a knock) before he slips back in, and how far away the
