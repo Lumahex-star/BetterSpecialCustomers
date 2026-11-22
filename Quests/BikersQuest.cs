@@ -60,6 +60,17 @@ namespace BetterSpecialCustomers.Quests
         private const string BikerLeaderNpcId = "diesel_rodd";
 
         private static Informant _instance;
+
+        // For InformantCombat: the NPC's id, and the informant while he's out on a job (null otherwise).
+        internal const string Id = NpcId;
+        internal static Informant ActiveInstance
+        {
+            get
+            {
+                var save = BikersQuestSave.Instance?.Data;
+                return save != null && save.Accepted && !save.TargetKilled && !save.Completed ? _instance : null;
+            }
+        }
         private static int _lookAppliedForRun = -1; // in-memory only: which run his random look was made for
 
         private static readonly string[] FirstNames =
@@ -148,6 +159,7 @@ namespace BetterSpecialCustomers.Quests
 
             QuestNpcUtil.Revive(this);
             QuestNpcUtil.EnterBuilding(NpcId, CurrentHideout());
+            InformantCombat.Setup(this, NpcId); // fights back with a knife, or an M1911 from Hustler III
             _outSince = -1f;
         }
 
@@ -162,6 +174,7 @@ namespace BetterSpecialCustomers.Quests
             try
             {
                 if (QuestNpcUtil.IsInBuilding(NpcId)) { _outSince = -1f; return; }
+                if (InformantCombat.IsFighting(NpcId)) { _outSince = Time.unscaledTime; return; } // never vanish mid-fight
                 if (_outSince < 0f) { _outSince = Time.unscaledTime; return; }
                 if (Time.unscaledTime - _outSince < RehideDelaySeconds) return;
 
