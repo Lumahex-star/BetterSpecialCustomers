@@ -49,6 +49,9 @@ namespace BetterSpecialCustomers.Quests
         // This run's target, so he keeps the same name after a reload.
         public string TargetName = string.Empty;
 
+        // This run's hiding place (a building name), for jobs whose target hides somewhere different each run.
+        public string TargetBuilding = string.Empty;
+
         // How many times the job has been started. Gives each run its own quest id.
         public int Runs;
     }
@@ -63,6 +66,7 @@ namespace BetterSpecialCustomers.Quests
 
         public Func<JobSaveData> GetSave;             // null until the save has loaded
         public Func<string> PickName;                 // a fresh random target name
+        public Func<string> PickBuilding;             // optional: a fresh random hiding place for the target
         public Action RefreshTarget;                  // put the target NPC where the job's state says he belongs
         public Func<string, Quest> CreateQuest;       // creates the quest object with the given id
     }
@@ -165,6 +169,7 @@ namespace BetterSpecialCustomers.Quests
                 save.GroupId = groupId ?? string.Empty;
                 save.Runs++;
                 save.TargetName = _def.PickName();
+                save.TargetBuilding = _def.PickBuilding?.Invoke() ?? string.Empty;
             }
             if (_quest == null)
             {
@@ -239,6 +244,7 @@ namespace BetterSpecialCustomers.Quests
             _quest = null;
             save.OfferState = 0;
             save.TargetName = string.Empty;
+            save.TargetBuilding = string.Empty;
             save.Accepted = false;
             save.TargetKilled = false;
             save.Completed = false;
@@ -319,13 +325,38 @@ namespace BetterSpecialCustomers.Quests
         // Entering a building hides an NPC (its avatar is switched off) and parks it at the door; knocking on that
         // door summons it back out for a few seconds. A building needs no interior for this to work.
 
+        private static readonly Dictionary<string, GameNPC> NpcCache = new Dictionary<string, GameNPC>();
+
         private static GameNPC FindGameNpc(string npcId)
         {
+            if (NpcCache.TryGetValue(npcId, out var cached) && cached != null) return cached;
             var all = UnityEngine.Object.FindObjectsOfType<GameNPC>(true);
             foreach (var n in all)
-                if (n != null && n.ID == npcId) return n;
+                if (n != null && n.ID == npcId) { NpcCache[npcId] = n; return n; }
             Melon<Core>.Logger.Warning($"[quest] NPC '{npcId}' is not among the {all.Length} NPCs in the scene");
             return null;
+        }
+
+        // True if a building with this name exists and has a door to hide behind.
+        public static bool HasEnterableBuilding(string name)
+        {
+            var b = FindBuilding(name);
+            return b != null && b.Doors.Length > 0;
+        }
+
+        // Debug aid: logs every building an NPC can enter, with its door count, so hideout names can be checked.
+        public static void LogBuildings()
+        {
+            var all = UnityEngine.Object.FindObjectsOfType<GameBuilding>(true);
+            Melon<Core>.Logger.Msg($"[quest] {all.Length} enterable buildings:");
+            foreach (var b in all)
+                if (b != null) Melon<Core>.Logger.Msg($"[quest]   '{b.BuildingName}' (doors: {b.Doors.Length})");
+        }
+
+        public static bool IsInBuilding(string npcId)
+        {
+            var npc = FindGameNpc(npcId);
+            return npc != null && npc.isInBuilding;
         }
 
         private static GameBuilding FindBuilding(string name)

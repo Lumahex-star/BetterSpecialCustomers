@@ -6,14 +6,13 @@ using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants
 using S1API.Entities.Appearances.CustomizationFields; // SkinColor, HairStyle, ...
 using S1API.Entities.Appearances.FaceLayerFields;     // Face, FacialHair
 using S1API.Internal.Abstraction;   // Saveable
-using S1API.Map;                    // Building
 using S1API.Quests;                 // Quest
 using S1API.Saveables;              // SaveableField
 using UnityEngine;
 
 namespace BetterSpecialCustomers.Quests
 {
-    // Diesel Rodd's job: a club informant hiding in The Piss Hut. The shared rules (roll, start, reward, reset) are in
+    // Diesel Rodd's job: a club informant hiding in a random building (picked each run). The shared rules (roll, start, reward, reset) are in
     // JobController; this file holds only what is specific to the bikers.
 
     // Saved progress. S1API saves the one SaveableField as JSON.
@@ -38,7 +37,24 @@ namespace BetterSpecialCustomers.Quests
     public sealed class Informant : NPC
     {
         private const string NpcId = "bikers_informant";
-        private const string HideoutName = "The Piss Hut";
+        // Where he can hide. One is picked at random each run. Names must match the game's building names exactly
+        // (turn on debug mode to log them all); names that aren't found, or have no door, are skipped.
+        // NOTE: only "The Piss Hut" is confirmed; check the others against the debug log.
+        private const string DefaultHideout = "The Piss Hut";
+        private static readonly string[] Hideouts =
+        {
+            DefaultHideout,
+            "Motel Office",
+            "Bud's Bar",
+            "Hyland Auto",
+        };
+
+        // How long he may be out of the building (after a knock) before he slips back in, and how far away the
+        // player must be for that. Keeps him out while you're fighting him nearby.
+        private const float RehideDelaySeconds = 30f;
+        private const float RehidePlayerDistance = 20f;
+        private static float _outSince = -1f;
+        private static bool _buildingsLogged;
 
         private static Informant _instance;
         private static int _lookAppliedForRun = -1; // in-memory only: which run his random look was made for
@@ -50,6 +66,27 @@ namespace BetterSpecialCustomers.Quests
 
         public static string PickName() => QuestNpcUtil.RandomName(FirstNames, LastNames);
 
+        // A random hiding place among the ones that actually exist in this world.
+        public static string PickHideout()
+        {
+            var valid = new System.Collections.Generic.List<string>();
+            foreach (var name in Hideouts)
+            {
+                if (QuestNpcUtil.HasEnterableBuilding(name)) valid.Add(name);
+                else Melon<Core>.Logger.Warning($"[quest] informant hideout '{name}' not found (or has no door), skipped");
+            }
+            string pick = valid.Count > 0 ? valid[UnityEngine.Random.Range(0, valid.Count)] : DefaultHideout;
+            Melon<Core>.Logger.Msg($"[quest] the informant is hiding in '{pick}' this run");
+            return pick;
+        }
+
+        // The building this run's informant hides in (older saves without one fall back to The Piss Hut).
+        public static string CurrentHideout()
+        {
+            string name = BikersQuestSave.Instance?.Data?.TargetBuilding;
+            return string.IsNullOrEmpty(name) ? DefaultHideout : name;
+        }
+
         public override bool IsPhysical => true;
 
         public Informant() : base() { }
@@ -57,9 +94,9 @@ namespace BetterSpecialCustomers.Quests
         protected override void ConfigurePrefab(NPCPrefabBuilder builder)
         {
             builder.WithIdentity(NpcId, "Informant", string.Empty)
-                   .WithSpawnPosition(QuestNpcUtil.ParkedPosition)
-                   // Once he has come out (summoned by a knock) he walks back in and stays in.
-                   .WithSchedule(plan => plan.StayInBuilding(Building.Get<S1API.Map.Buildings.ThePissHut>(), 0, 1439));
+                   .WithSpawnPosition(QuestNpcUtil.ParkedPosition);
+            // No schedule: the prefab is built before the save loads, so it can't know this run's hideout.
+            // Tick() puts him back inside after a knock instead.
         }
 
         protected override void OnCreated()
@@ -68,13 +105,18 @@ namespace BetterSpecialCustomers.Quests
             Appearance.Build();
             _instance = this;
             Melon<Core>.Logger.Msg("[quest] the informant NPC was created");
+            if (ModConfig.DebugMode.Value && !_buildingsLogged)
+            {
+                _buildingsLogged = true;
+                QuestNpcUtil.LogBuildings(); // helps check the Hideouts list
+            }
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
             OnDeath += BikersQuest.Job.OnObjectiveDone;
             Refresh();
         }
 
-        // Puts him inside The Piss Hut while the job is open and he is still alive, otherwise parks him.
+        // Puts him inside this run's hideout while the job is open and he is still alive, otherwise parks him.
         public static void Refresh()
         {
             if (_instance == null) return;
@@ -100,8 +142,35 @@ namespace BetterSpecialCustomers.Quests
             }
 
             QuestNpcUtil.Revive(this);
-            QuestNpcUtil.EnterBuilding(NpcId, HideoutName);
-            Schedule.Enable(); // after a summon he returns to the hut by himself
+            QuestNpcUtil.EnterBuilding(NpcId, CurrentHideout());
+            _outSince = -1f;
+        }
+
+        // Called about once a second. After a knock brings him out, he slips back into his hideout once he has been
+        // out a while and the player isn't close by (so he never vanishes mid-fight).
+        public static void Tick()
+        {
+            if (_instance == null) return;
+            var save = BikersQuestSave.Instance?.Data;
+            if (save == null || !save.Accepted || save.TargetKilled || save.Completed || _instance.IsDead) { _outSince = -1f; return; }
+
+            try
+            {
+                if (QuestNpcUtil.IsInBuilding(NpcId)) { _outSince = -1f; return; }
+                if (_outSince < 0f) { _outSince = Time.unscaledTime; return; }
+                if (Time.unscaledTime - _outSince < RehideDelaySeconds) return;
+
+                var cam = Camera.main;
+                if (cam != null && (cam.transform.position - _instance.Position).sqrMagnitude < RehidePlayerDistance * RehidePlayerDistance) return;
+
+                QuestNpcUtil.EnterBuilding(NpcId, CurrentHideout());
+                _outSince = -1f;
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Error($"[quest] informant re-hide failed: {ex}");
+                _outSince = Time.unscaledTime; // don't spam the log every second
+            }
         }
 
         // ---- Look ----------------------------------------------------------------------------------------------
@@ -192,6 +261,7 @@ namespace BetterSpecialCustomers.Quests
             CashReward = () => ModConfig.BikersCashReward.Value,
             GetSave = () => BikersQuestSave.Instance?.Data,
             PickName = Informant.PickName,
+            PickBuilding = Informant.PickHideout,
             RefreshTarget = Informant.Refresh,
             CreateQuest = id => QuestManager.CreateQuest<BikersQuest>(id),
         });
@@ -207,8 +277,8 @@ namespace BetterSpecialCustomers.Quests
             base.OnCreated();
             Job.Attach(this);
             string name = Job.TargetNameOr("the informant");
-            var kill = AddEntry($"Knock on the door of The Piss Hut and kill {name}");
-            kill.SetPOIToNPC<Informant>(); // the marker follows him; while hidden he sits at the hut's door
+            var kill = AddEntry($"Knock on the door of {Informant.CurrentHideout()} and kill {name}");
+            kill.SetPOIToNPC<Informant>(); // the marker follows him; while hidden he sits at the hideout's door
             AddEntry($"Tell Diesel {name} is dealt with");
         }
 

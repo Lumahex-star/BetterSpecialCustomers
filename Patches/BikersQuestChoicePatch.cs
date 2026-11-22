@@ -20,7 +20,7 @@ namespace BetterSpecialCustomers.Patches
             Job = BikersQuest.Job,
             Lines = new JobLines
             {
-                OfferLine = name => $"Somebody's been feedin' the cops about club business. Name's {name}. He's holed up at The Piss Hut. Knock on the door, and make sure he never talks again.",
+                OfferLine = name => $"Somebody's been feedin' the cops about club business. Name's {name}. He's holed up at {Informant.CurrentHideout()}. Knock on the door, and make sure he never talks again.",
                 NoJobLines = new[]
                 {
                     "Not this time, prospect. Road's quiet. Come find me when it ain't.",

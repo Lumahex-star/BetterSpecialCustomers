@@ -34,7 +34,7 @@ Open a leader's dialogue and ask for work. Each visit there is a **50% chance** 
 
 | Group | Leader | Job | Reward |
 |---|---|---|---|
-| Bikers | Diesel Rodd | **Loose Lips.** A club informant is hiding in The Piss Hut. Knock on the door to bring him out, then deal with him. | $5,000 and 100 XP |
+| Bikers | Diesel Rodd | **Loose Lips.** A club informant is hiding somewhere in town (a different building each time). Knock on the door to bring him out, then deal with him. | $5,000 and 100 XP |
 | Businessmen | Johnny Smith | **The Audit.** An auditor follows a daily routine around town. Find him and deal with him. | $5,000 and 100 XP |
 | Hippies | Krystal Bird | **Special Delivery.** Carry a brick of Krystal's Cosmic Caps from one dead drop to another within 2 days. Or keep it... | Grow supplies (3 Extra Long-Life Soil, 3 Speed Grow, 1 PGR, 1 Fertilizer) and 100 XP |
 | Party Bus | Chad Chaddington | **Spread the Word.** Invite 5 townspeople to the Party Bus. Some will say no. | $2,500, 5 Energy Drinks and 100 XP |
