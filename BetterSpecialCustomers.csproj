@@ -482,7 +482,7 @@
 			<HintPath>$(S1Dir)\MelonLoader\net35\0Harmony.dll</HintPath>
 		</Reference>
 		<Reference Include="S1API_Forked_Mono">
-			<HintPath>D:\Modding Things\Schedule I - Mono\Mods\S1API.Mono.Melonloader.dll</HintPath>
+			<HintPath>D:\Modding Things\Schedule I - Mono\Mods\S1API.dll</HintPath>
 		</Reference>
 
 	</ItemGroup>
