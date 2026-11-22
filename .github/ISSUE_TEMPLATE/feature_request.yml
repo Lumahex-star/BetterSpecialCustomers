@@ -1,0 +1,65 @@
+name: Feature request
+description: Suggest a new feature or an improvement to an existing one.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea? Love to hear it! Please check the [open issues](https://github.com/Lumahex-star/BetterSpecialCustomers/issues) first in case someone has already suggested it.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the mod is this about?
+      options:
+        - Buy limits
+        - Relationships
+        - Quests (an existing one)
+        - A new quest
+        - Krystal's Cosmic Caps
+        - Settings
+        - Something new
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem or idea?
+      description: What would this add or fix? Why would it make the mod better?
+      placeholder: Loose Lips gets predictable because the informant always hides in the same building.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: How do you imagine it working?
+      description: Describe what you'd like to see in game. Examples help a lot.
+      placeholder: The informant could hide in a different building each time, and Diesel tells you which one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Any alternatives you've thought of?
+      description: Other ways this could work, or how you get around it right now.
+
+  - type: dropdown
+    id: settings
+    attributes:
+      label: Should it be optional?
+      description: Should players be able to turn this on or off, or tweak it in the settings?
+      options:
+        - Yes, it should be a setting
+        - No, it should just be part of the mod
+        - No preference
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, mockups, links to similar mods, or anything else that helps explain the idea.

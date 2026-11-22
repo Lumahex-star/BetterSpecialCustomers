@@ -1,0 +1,2 @@
+# Only allow the forms above, so every issue follows a format.
+blank_issues_enabled: false
