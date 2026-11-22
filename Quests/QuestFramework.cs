@@ -513,6 +513,23 @@ namespace BetterSpecialCustomers.Quests
             return false;
         }
 
+        // The same for face layers (faces, facial hair).
+        public static bool WearFace<T>(NPCAppearance appearance, Color color, params string[] candidatePaths)
+            where T : S1API.Entities.Appearances.Base.BaseFaceAppearance
+        {
+            foreach (string path in candidatePaths)
+            {
+                if (CanResolve(path))
+                {
+                    appearance.WithFaceLayer<T>(path, color);
+                    if (ModConfig.DebugMode.Value) Melon<Core>.Logger.Msg($"[quest] outfit face layer added: {path}");
+                    return true;
+                }
+                WarnOnce(path, $"[quest] outfit face layer not found: {path}");
+            }
+            return false;
+        }
+
         private static readonly HashSet<string> Warned = new HashSet<string>();
 
         private static void WarnOnce(string key, string message)
