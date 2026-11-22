@@ -2,7 +2,7 @@
 using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Entities.Appearances.AccessoryFields;     // Chest, Feet, Neck, Head, Hands, Waist
-using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants
+using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants, Accessories (gloves), tattoos
 using S1API.Entities.Appearances.CustomizationFields; // SkinColor, HairStyle, ...
 using S1API.Entities.Appearances.FaceLayerFields;     // Face, FacialHair
 using S1API.Internal.Abstraction;   // Saveable
@@ -55,6 +55,7 @@ namespace BetterSpecialCustomers.Quests
         private const float RehidePlayerDistance = 20f;
         private static float _outSince = -1f;
         private static bool _buildingsLogged;
+        private const string BikerLeaderNpcId = "diesel_rodd";
 
         private static Informant _instance;
         private static int _lookAppliedForRun = -1; // in-memory only: which run his random look was made for
@@ -109,6 +110,8 @@ namespace BetterSpecialCustomers.Quests
             {
                 _buildingsLogged = true;
                 QuestNpcUtil.LogBuildings(); // helps check the Hideouts list
+                AppearanceUtil.LogAllAvatarObjects();             // every outfit item in the game...
+                AppearanceUtil.LogWornObjects(BikerLeaderNpcId);  // ...and what the real bikers wear
             }
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
@@ -219,15 +222,31 @@ namespace BetterSpecialCustomers.Quests
             Appearance.WithBodyLayer<Shirts>(QuestNpcUtil.Pick(tops), (Color)QuestNpcUtil.Pick(ShirtColors));
             Appearance.WithBodyLayer<Pants>(UnityEngine.Random.value < 0.7f ? Pants.Jeans : Pants.CargoPants, (Color)QuestNpcUtil.Pick(JeansColors));
 
-            // Outerwear: mostly the biker jacket, sometimes a leather jacket or an open vest.
+            // Outerwear: mostly the biker jacket, sometimes a leather jacket or an open vest. The jackets' paths are
+            // guesses (they aren't in S1API's lists), so if the one rolled can't be found he gets the open vest,
+            // which is confirmed: he should never end up without biker outerwear.
             Color leather = UnityEngine.Random.value < 0.7f ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.2f, 0.12f, 0.07f);
             float jacket = UnityEngine.Random.value;
+            bool hasOuterwear;
             if (jacket < 0.6f)
-                AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/BikerJacket/BikerJacket", "Avatar/Accessories/Chest/BikerJacket/Biker Jacket");
+                hasOuterwear = AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/BikerJacket/BikerJacket", "Avatar/Accessories/Chest/BikerJacket/Biker Jacket");
             else if (jacket < 0.85f)
-                AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/LeatherJacket/LeatherJacket", "Avatar/Accessories/Chest/LeatherJacket/leatherJacket");
+                hasOuterwear = AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/LeatherJacket/LeatherJacket", "Avatar/Accessories/Chest/LeatherJacket/leatherJacket");
             else
+                hasOuterwear = false;
+            if (!hasOuterwear)
                 AppearanceUtil.Wear<Chest>(Appearance, leather, Chest.OpenVest);
+
+            // Ink: often a chest tattoo, sometimes one on an arm.
+            if (UnityEngine.Random.value < 0.5f)
+                AppearanceUtil.WearLayer<ChestTattoos>(Appearance, Color.white, QuestNpcUtil.Pick(new[] { ChestTattoos.DeadFace, ChestTattoos.Sword }));
+            if (UnityEngine.Random.value < 0.4f)
+            {
+                if (UnityEngine.Random.value < 0.5f)
+                    AppearanceUtil.WearLayer<LeftArmTattoos>(Appearance, Color.white, QuestNpcUtil.Pick(new[] { LeftArmTattoos.Web, LeftArmTattoos.Heart }));
+                else
+                    AppearanceUtil.WearLayer<RightArmTattoos>(Appearance, Color.white, QuestNpcUtil.Pick(new[] { RightArmTattoos.Web, RightArmTattoos.Heart }));
+            }
 
             // Boots, a belt, and one of: bandana, beanie, shades or nothing on the head.
             AppearanceUtil.Wear<Feet>(Appearance, new Color(0.1f, 0.1f, 0.1f), UnityEngine.Random.value < 0.85f ? Feet.CombatBoots : Feet.Sneakers);
@@ -242,9 +261,9 @@ namespace BetterSpecialCustomers.Quests
             else if (head < 0.7f)
                 AppearanceUtil.Wear<Head>(Appearance, Color.white, Head.Oakleys);
 
-            // Hands and neck: fingerless gloves sometimes, a chain sometimes.
+            // Hands and neck: fingerless gloves sometimes (a body layer, not an accessory), a chain sometimes.
             if (UnityEngine.Random.value < 0.4f)
-                AppearanceUtil.Wear<Hands>(Appearance, new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Hands/FingerlessGloves/FingerlessGloves");
+                AppearanceUtil.WearLayer<S1API.Entities.Appearances.BodyLayerFields.Accessories>(Appearance, new Color(0.1f, 0.1f, 0.1f), S1API.Entities.Appearances.BodyLayerFields.Accessories.FingerlessGloves);
             if (UnityEngine.Random.value < 0.4f)
                 AppearanceUtil.Wear<Neck>(Appearance, Color.white, Neck.GoldChain, "Avatar/Accessories/Neck/SilverChain/SilverChain");
 

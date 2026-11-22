@@ -2,6 +2,12 @@
 
 Nexus Mods takes one plain-text line per change; paste the lines under a version as its changelog entries.
 
+## 1.2.0 (in development)
+
+Changed: Diesel Rodd's informant in Loose Lips hides in a different building each run, and Diesel tells you which one.
+Fixed: Diesel Rodd's informant often wore no biker outerwear. If his jacket can't be found he now wears an open vest, and his fingerless gloves show up again.
+New: Diesel Rodd's informant can have a chest or arm tattoo.
+
 ## 1.1.0
 
 New: Krystal's Cosmic Caps, an exclusive shroom product ($98 a unit, about $1,960 a brick) that can't be grown, cooked or mixed.

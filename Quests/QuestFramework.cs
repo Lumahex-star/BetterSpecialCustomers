@@ -14,12 +14,16 @@ using GameBuilding = ScheduleOne.Map.NPCEnterableBuilding;
 using GameItemInstance = ScheduleOne.ItemFramework.ItemInstance;
 using GameRegistry = ScheduleOne.Registry;
 using GameInventory = ScheduleOne.PlayerScripts.PlayerInventory;
+using GameAvatarObject = ScheduleOne.Core.Avatar.AvatarObject;
+using GameAvatarObjectLibrary = ScheduleOne.Avatar.AvatarObjectLibrary;
 #elif IL2CPP
 using GameNPC = Il2CppScheduleOne.NPCs.NPC;
 using GameBuilding = Il2CppScheduleOne.Map.NPCEnterableBuilding;
 using GameItemInstance = Il2CppScheduleOne.ItemFramework.ItemInstance;
 using GameRegistry = Il2CppScheduleOne.Registry;
 using GameInventory = Il2CppScheduleOne.PlayerScripts.PlayerInventory;
+using GameAvatarObject = Il2CppScheduleOne.Core.Avatar.AvatarObject;
+using GameAvatarObjectLibrary = Il2CppScheduleOne.Avatar.AvatarObjectLibrary;
 #endif
 
 namespace BetterSpecialCustomers.Quests
@@ -327,7 +331,7 @@ namespace BetterSpecialCustomers.Quests
 
         private static readonly Dictionary<string, GameNPC> NpcCache = new Dictionary<string, GameNPC>();
 
-        private static GameNPC FindGameNpc(string npcId)
+        internal static GameNPC FindGameNpc(string npcId)
         {
             if (NpcCache.TryGetValue(npcId, out var cached) && cached != null) return cached;
             var all = UnityEngine.Object.FindObjectsOfType<GameNPC>(true);
@@ -453,21 +457,105 @@ namespace BetterSpecialCustomers.Quests
             }
         }
 
-        // Wears the first of the given accessory paths that the game can actually load. Some paths are educated guesses
-        // (the game's newer items aren't in S1API's lists), so a missing one is logged and skipped.
-        public static void Wear<T>(NPCAppearance appearance, Color color, params string[] candidatePaths)
+        // The game now dresses avatars with "avatar objects" from AvatarObjectLibrary; S1API turns the old asset paths
+        // we give it into those. These checks mirror how S1API resolves a path (AvatarCompatibility.TryResolveAvatarObject):
+        // an old-style asset at the path, or a library item whose id is the path or its last segment.
+        public static bool CanResolve(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            try { if (Resources.Load(path) != null) return true; } catch { }
+            try
+            {
+                if (GameAvatarObjectLibrary.TryGetAvatarObjectById(path, out GameAvatarObject byPath) && byPath != null) return true;
+                string last = path.Substring(path.LastIndexOf('/') + 1);
+                if (GameAvatarObjectLibrary.TryGetAvatarObjectById(last, out GameAvatarObject byName) && byName != null) return true;
+            }
+            catch (Exception ex)
+            {
+                WarnOnce("library:" + ex.GetType().Name, "[quest] looking up outfit items failed: " + ex.Message);
+            }
+            return false;
+        }
+
+        // Wears the first of the given accessory paths that the game can resolve. Some paths are educated guesses
+        // (the game's newer items aren't in S1API's lists), so a missing one is logged (once) and skipped.
+        // Returns false if none of them could be worn.
+        public static bool Wear<T>(NPCAppearance appearance, Color color, params string[] candidatePaths)
             where T : S1API.Entities.Appearances.Base.BaseAccessoryAppearance
         {
             foreach (string path in candidatePaths)
             {
-                bool exists = false;
-                try { exists = Resources.Load(path) != null; } catch { }
-                if (exists)
+                if (CanResolve(path))
                 {
                     appearance.WithAccessoryLayer<T>(path, color);
-                    return;
+                    return true;
                 }
-                Melon<Core>.Logger.Warning($"[quest] outfit path not found: {path}");
+                WarnOnce(path, $"[quest] outfit path not found: {path}");
+            }
+            return false;
+        }
+
+        // The same for body layers (shirts, gloves, tattoos).
+        public static bool WearLayer<T>(NPCAppearance appearance, Color color, params string[] candidatePaths)
+            where T : S1API.Entities.Appearances.Base.BaseBodyAppearance
+        {
+            foreach (string path in candidatePaths)
+            {
+                if (CanResolve(path))
+                {
+                    appearance.WithBodyLayer<T>(path, color);
+                    return true;
+                }
+                WarnOnce(path, $"[quest] outfit layer not found: {path}");
+            }
+            return false;
+        }
+
+        private static readonly HashSet<string> Warned = new HashSet<string>();
+
+        private static void WarnOnce(string key, string message)
+        {
+            if (Warned.Add(key)) Melon<Core>.Logger.Warning(message);
+        }
+
+        // ---- Debug aids (debug mode only) ----
+
+        // Logs the id of every outfit item in the game, so guessed paths can be swapped for real ones.
+        public static void LogAllAvatarObjects()
+        {
+            try
+            {
+                var all = GameAvatarObjectLibrary.GetAllAvatarObjects();
+                if (all == null) { Melon<Core>.Logger.Warning("[quest] the outfit library returned nothing"); return; }
+                Melon<Core>.Logger.Msg($"[quest] {all.Count} outfit items in the game:");
+                for (int i = 0; i < all.Count; i++)
+                {
+                    var obj = all[i];
+                    if (obj != null) Melon<Core>.Logger.Msg($"[quest]   item '{obj.Id}' ({obj.PrimaryType})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Warning("[quest] listing outfit items failed: " + ex.Message);
+            }
+        }
+
+        // Logs what a game NPC is wearing right now (e.g. Diesel Rodd), by the ids the outfit library uses.
+        public static void LogWornObjects(string npcId)
+        {
+            try
+            {
+                var npc = QuestNpcUtil.FindGameNpc(npcId);
+                var avatar = npc?.Avatar;
+                if (avatar == null) { Melon<Core>.Logger.Warning($"[quest] no avatar found for '{npcId}'"); return; }
+                var objects = avatar.GetComponentsInChildren<GameAvatarObject>(true);
+                Melon<Core>.Logger.Msg($"[quest] '{npcId}' is wearing {objects.Length} outfit items:");
+                foreach (var obj in objects)
+                    if (obj != null) Melon<Core>.Logger.Msg($"[quest]   worn '{obj.Id}' ({obj.PrimaryType})");
+            }
+            catch (Exception ex)
+            {
+                Melon<Core>.Logger.Warning($"[quest] listing what '{npcId}' wears failed: " + ex.Message);
             }
         }
     }
