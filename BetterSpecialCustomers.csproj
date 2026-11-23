@@ -967,10 +967,12 @@
 		<Compile Include="Patches\RelationshipVisitPatches.cs" />
 		<Compile Include="Quests\BikersQuest.cs" />
 		<Compile Include="Quests\BusinessmenQuest.cs" />
+		<Compile Include="Quests\ClubBrawlQuest.cs" />
 		<Compile Include="Quests\HippiesQuest.cs" />
 		<Compile Include="Quests\KrystalsShrooms.cs" />
 		<Compile Include="Quests\PartyBusQuest.cs" />
 		<Compile Include="Quests\QuestFramework.cs" />
+		<Compile Include="Quests\RivalBiker.cs" />
 		<Compile Include="Relationships\GroupRelationships.cs" />
 		<Compile Include="TemplateUtils\AssetBundleUtils.cs" />
 		<Folder Include="Libs\" />
