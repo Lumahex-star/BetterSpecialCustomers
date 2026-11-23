@@ -482,7 +482,7 @@
 			<HintPath>$(S1Dir)\MelonLoader\net35\0Harmony.dll</HintPath>
 		</Reference>
 		<Reference Include="S1API_Forked_Mono">
-			<HintPath>D:\Modding Things\Schedule I - Mono\Mods\S1API.Mono.Melonloader.dll</HintPath>
+			<HintPath>D:\Modding Things\Schedule I - Mono\Mods\S1API.dll</HintPath>
 		</Reference>
 
 	</ItemGroup>
@@ -969,6 +969,7 @@
 		<Compile Include="Quests\BusinessmenQuest.cs" />
 		<Compile Include="Quests\ClubBrawlQuest.cs" />
 		<Compile Include="Quests\HippiesQuest.cs" />
+		<Compile Include="Quests\InformantCombat.cs" />
 		<Compile Include="Quests\KrystalsShrooms.cs" />
 		<Compile Include="Quests\PartyBusQuest.cs" />
 		<Compile Include="Quests\QuestFramework.cs" />

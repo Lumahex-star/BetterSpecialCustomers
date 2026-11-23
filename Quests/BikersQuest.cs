@@ -2,7 +2,7 @@
 using MelonLoader;
 using S1API.Entities;               // NPC
 using S1API.Entities.Appearances.AccessoryFields;     // Chest, Feet, Neck, Head, Hands, Waist
-using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants
+using S1API.Entities.Appearances.BodyLayerFields;     // Shirts, Pants, Accessories (gloves), tattoos
 using S1API.Entities.Appearances.CustomizationFields; // SkinColor, HairStyle, ...
 using S1API.Entities.Appearances.FaceLayerFields;     // Face, FacialHair
 using S1API.Internal.Abstraction;   // Saveable
@@ -46,7 +46,9 @@ namespace BetterSpecialCustomers.Quests
             DefaultHideout,
             "Motel Office",
             "Bud's Bar",
-            "Hyland Auto",
+            "The Crimson Canary",
+            "Supermarket",
+
         };
 
         // How long he may be out of the building (after a knock) before he slips back in, and how far away the
@@ -55,8 +57,20 @@ namespace BetterSpecialCustomers.Quests
         private const float RehidePlayerDistance = 20f;
         private static float _outSince = -1f;
         private static bool _buildingsLogged;
+        private const string BikerLeaderNpcId = "diesel_rodd";
 
         private static Informant _instance;
+
+        // For InformantCombat: the NPC's id, and the informant while he's out on a job (null otherwise).
+        internal const string Id = NpcId;
+        internal static Informant ActiveInstance
+        {
+            get
+            {
+                var save = BikersQuestSave.Instance?.Data;
+                return save != null && save.Accepted && !save.TargetKilled && !save.Completed ? _instance : null;
+            }
+        }
         private static int _lookAppliedForRun = -1; // in-memory only: which run his random look was made for
 
         private static readonly string[] FirstNames =
@@ -109,6 +123,8 @@ namespace BetterSpecialCustomers.Quests
             {
                 _buildingsLogged = true;
                 QuestNpcUtil.LogBuildings(); // helps check the Hideouts list
+                AppearanceUtil.LogAllAvatarObjects();             // every outfit item in the game...
+                AppearanceUtil.LogWornObjects(BikerLeaderNpcId);  // ...and what the real bikers wear
             }
 
             // Vanilla's Quest_DefeatCartel only counts a kill (IsDead), so we do the same.
@@ -143,6 +159,7 @@ namespace BetterSpecialCustomers.Quests
 
             QuestNpcUtil.Revive(this);
             QuestNpcUtil.EnterBuilding(NpcId, CurrentHideout());
+            InformantCombat.Setup(this, NpcId); // fights back with a knife, or an M1911 from Hustler III
             _outSince = -1f;
         }
 
@@ -157,6 +174,7 @@ namespace BetterSpecialCustomers.Quests
             try
             {
                 if (QuestNpcUtil.IsInBuilding(NpcId)) { _outSince = -1f; return; }
+                if (InformantCombat.IsFighting(NpcId)) { _outSince = Time.unscaledTime; return; } // never vanish mid-fight
                 if (_outSince < 0f) { _outSince = Time.unscaledTime; return; }
                 if (Time.unscaledTime - _outSince < RehideDelaySeconds) return;
 
@@ -182,11 +200,12 @@ namespace BetterSpecialCustomers.Quests
             new Color32(30, 22, 18, 255), new Color32(60, 40, 28, 255), new Color32(95, 65, 40, 255),
             new Color32(150, 120, 80, 255), new Color32(120, 120, 120, 255),
         };
+        // Hair, face and outfit items are named by their ids in the game's outfit library (AvatarObjectLibrary), which
+        // S1API looks up directly. The old asset paths in S1API's lists (e.g. "Avatar/Accessories/Chest/OpenVest/OpenVest")
+        // no longer resolve in the current game. Turn on debug mode to log every id. "Worn" items go in the outfit
+        // (accessory layers), "Natural" ones (hair, faces, tattoos, bandanas) on the body (face/body layers).
         private static readonly string[] HairStyles =
-        {
-            HairStyle.BuzzCut, HairStyle.CloseBuzzCut, HairStyle.Balding, HairStyle.Receding,
-            HairStyle.LongSlicked, HairStyle.ShoulderLength, HairStyle.Peaked,
-        };
+            { "buzzcut", "closebuzzcut", "balding", "receding", "longslickedback", "shoulderlengthhair", "peaked", "mohawk" };
         private static readonly Color32[] ShirtColors =
         {
             new Color32(25, 25, 25, 255), new Color32(60, 60, 60, 255), new Color32(110, 25, 25, 255), new Color32(90, 90, 90, 255),
@@ -210,45 +229,50 @@ namespace BetterSpecialCustomers.Quests
             Appearance.Set<HairStyle>(QuestNpcUtil.Pick(HairStyles));
 
             Color featureColor = new Color(0.15f, 0.1f, 0.1f);
-            Appearance.WithFaceLayer<Face>(UnityEngine.Random.value < 0.5f ? Face.Neutral : Face.SlightFrown, featureColor);
+            AppearanceUtil.WearFace<Face>(Appearance, featureColor, UnityEngine.Random.value < 0.5f ? "neutralface" : "slightfrown");
             if (UnityEngine.Random.value < 0.6f)
-                Appearance.WithFaceLayer<FacialHair>(UnityEngine.Random.value < 0.5f ? FacialHair.Stubble : FacialHair.Goatee, hair);
+                AppearanceUtil.WearFace<FacialHair>(Appearance, hair, QuestNpcUtil.Pick(new[] { "stubble", "goatee", "beardhandlebar", "beardfull" }));
 
-            // Top and bottom layers (the paths for these are in S1API's lists).
-            string[] tops = { Shirts.TShirt, Shirts.TShirt, Shirts.VNeck, Shirts.FlannelButtonUp, Shirts.RolledButtonUp };
-            Appearance.WithBodyLayer<Shirts>(QuestNpcUtil.Pick(tops), (Color)QuestNpcUtil.Pick(ShirtColors));
-            Appearance.WithBodyLayer<Pants>(UnityEngine.Random.value < 0.7f ? Pants.Jeans : Pants.CargoPants, (Color)QuestNpcUtil.Pick(JeansColors));
+            // Top and bottoms (worn items in the current game).
+            string top = QuestNpcUtil.Pick(new[] { "tshirt", "tshirt", "vneckshirt", "stainedsinglet", "flannelbuttonupshirt", "buttonupshirtrolled" });
+            AppearanceUtil.Wear<Chest>(Appearance, (Color)QuestNpcUtil.Pick(ShirtColors), top);
+            AppearanceUtil.Wear<Bottom>(Appearance, (Color)QuestNpcUtil.Pick(JeansColors), UnityEngine.Random.value < 0.7f ? "jeans" : "cargopants");
 
-            // Outerwear: mostly the biker jacket, sometimes a leather jacket or an open vest.
+            // Outerwear: mostly the biker jacket, sometimes a leather jacket or an open vest. If the one rolled can't be
+            // found he gets the open vest, so he never ends up without biker outerwear.
             Color leather = UnityEngine.Random.value < 0.7f ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.2f, 0.12f, 0.07f);
             float jacket = UnityEngine.Random.value;
-            if (jacket < 0.6f)
-                AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/BikerJacket/BikerJacket", "Avatar/Accessories/Chest/BikerJacket/Biker Jacket");
-            else if (jacket < 0.85f)
-                AppearanceUtil.Wear<Chest>(Appearance, leather, "Avatar/Accessories/Chest/LeatherJacket/LeatherJacket", "Avatar/Accessories/Chest/LeatherJacket/leatherJacket");
-            else
-                AppearanceUtil.Wear<Chest>(Appearance, leather, Chest.OpenVest);
+            string outerwear = jacket < 0.6f ? "bikerjacket" : jacket < 0.85f ? "leatherJacket" : "openvest";
+            if (!AppearanceUtil.Wear<Chest>(Appearance, leather, outerwear) && outerwear != "openvest")
+                AppearanceUtil.Wear<Chest>(Appearance, leather, "openvest");
+
+            // Ink: often a chest tattoo, sometimes one on an arm.
+            if (UnityEngine.Random.value < 0.5f)
+                AppearanceUtil.WearLayer<ChestTattoos>(Appearance, Color.white, QuestNpcUtil.Pick(new[] { "deadface", "chestsword" }));
+            if (UnityEngine.Random.value < 0.4f)
+                AppearanceUtil.WearLayer<LeftArmTattoos>(Appearance, Color.white, QuestNpcUtil.Pick(new[] { "leftarmweb", "leftarmheart", "rightarmweb", "rightarmheart" }));
 
             // Boots, a belt, and one of: bandana, beanie, shades or nothing on the head.
-            AppearanceUtil.Wear<Feet>(Appearance, new Color(0.1f, 0.1f, 0.1f), UnityEngine.Random.value < 0.85f ? Feet.CombatBoots : Feet.Sneakers);
+            AppearanceUtil.Wear<Feet>(Appearance, new Color(0.1f, 0.1f, 0.1f), UnityEngine.Random.value < 0.85f ? "combatboots" : "sneakers");
             if (UnityEngine.Random.value < 0.5f)
-                AppearanceUtil.Wear<Waist>(Appearance, new Color(0.1f, 0.07f, 0.05f), "Avatar/Accessories/Waist/Belt/Belt");
+                AppearanceUtil.Wear<Waist>(Appearance, new Color(0.1f, 0.07f, 0.05f), "belt");
 
             float head = UnityEngine.Random.value;
             if (head < 0.3f)
-                AppearanceUtil.Wear<Head>(Appearance, new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Head/Bandana/Bandana", "Avatar/Accessories/Head/PaisleyBandana/PaisleyBandana");
+                AppearanceUtil.WearLayer<ChestTattoos>(Appearance, new Color(0.1f, 0.1f, 0.1f), UnityEngine.Random.value < 0.7f ? "bandana" : "flagbandana"); // bandanas are "Natural" items
             else if (head < 0.5f)
-                AppearanceUtil.Wear<Head>(Appearance, new Color(0.12f, 0.12f, 0.12f), Head.Beanie);
+                AppearanceUtil.Wear<Head>(Appearance, new Color(0.12f, 0.12f, 0.12f), "beanie");
             else if (head < 0.7f)
-                AppearanceUtil.Wear<Head>(Appearance, Color.white, Head.Oakleys);
+                AppearanceUtil.Wear<Head>(Appearance, Color.white, "brokeleys");
 
             // Hands and neck: fingerless gloves sometimes, a chain sometimes.
             if (UnityEngine.Random.value < 0.4f)
-                AppearanceUtil.Wear<Hands>(Appearance, new Color(0.1f, 0.1f, 0.1f), "Avatar/Accessories/Hands/FingerlessGloves/FingerlessGloves");
+                AppearanceUtil.Wear<Hands>(Appearance, new Color(0.1f, 0.1f, 0.1f), "fingerlessgloves");
             if (UnityEngine.Random.value < 0.4f)
-                AppearanceUtil.Wear<Neck>(Appearance, Color.white, Neck.GoldChain, "Avatar/Accessories/Neck/SilverChain/SilverChain");
+                AppearanceUtil.Wear<Neck>(Appearance, Color.white, "chain");
 
             AppearanceUtil.ApplyNow(Appearance);
+            if (ModConfig.DebugMode.Value) AppearanceUtil.LogWornObjects(NpcId); // what actually ended up on him
         }
     }
 

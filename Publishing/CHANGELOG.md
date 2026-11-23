@@ -2,6 +2,15 @@
 
 Nexus Mods takes one plain-text line per change; paste the lines under a version as its changelog entries.
 
+## 1.2.0 (in development)
+
+Changed: Diesel Rodd's informant in Loose Lips hides in a different building each run, and Diesel tells you which one.
+Fixed: Diesel Rodd's informant wasn't wearing his biker outfit. He now wears a biker jacket, leather jacket or open vest, with gloves, boots, a chain and more.
+New: Diesel Rodd's informant can have a chest or arm tattoo.
+New: Diesel Rodd's informant always fights back when provoked, with a knife, or an M1911 once you reach Hustler III.
+Fixed: the businessmen's auditor in The Audit now wears his suit, tie and glasses again.
+Changed: both quest targets are dressed with the current game's outfit items.
+
 ## 1.1.0
 
 New: Krystal's Cosmic Caps, an exclusive shroom product ($98 a unit, about $1,960 a brick) that can't be grown, cooked or mixed.

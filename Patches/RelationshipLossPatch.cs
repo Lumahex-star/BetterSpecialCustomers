@@ -62,7 +62,7 @@ namespace BetterSpecialCustomers.Patches
         //   1. ConvertDelegate wraps our normal C# method in the game's delegate type.
         //   2. Combine adds it to whatever handlers the event already has (this is the same thing the game
         //      itself does in SpecialCustomer.SetGroupMates), and Cast gives the result back its exact type.
-        private static Il2CppSystem.Action<Player> AddHandler(Il2CppSystem.Action<Player> existing, Action<Player> handler)
+        internal static Il2CppSystem.Action<Player> AddHandler(Il2CppSystem.Action<Player> existing, Action<Player> handler)
         {
             var converted = DelegateSupport.ConvertDelegate<Il2CppSystem.Action<Player>>(handler);
             return Il2CppSystem.Delegate.Combine(existing, converted).Cast<Il2CppSystem.Action<Player>>();
