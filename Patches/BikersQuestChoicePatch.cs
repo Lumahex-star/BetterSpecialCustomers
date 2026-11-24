@@ -1,5 +1,7 @@
 using HarmonyLib;
 using BetterSpecialCustomers.Quests;
+using static S1API.Economy.ContractInfo;
+
 #if MONO
 using ScheduleOne.NPCs;
 #elif IL2CPP
@@ -17,10 +19,10 @@ namespace BetterSpecialCustomers.Patches
             LeaderId = "diesel_rodd",
             AskText = "You got any jobs for me?",
             HandInText = "He's dealt with.",
-            Job = BikersQuest.Job,
+            Job = ClubBrawlQuest.Job,
             Lines = new JobLines
             {
-                OfferLine = name => $"Somebody's been feedin' the cops about club business. Name's {name}. He's holed up at {Informant.CurrentHideout()}. Knock on the door, and make sure he never talks again.",
+                OfferLine = name =>  $"There's a gathering of rival club members in {ClubBrawlTask.RegionName()}. Do us a solid and take them out.",
                 NoJobLines = new[]
                 {
                     "Not this time, prospect. Road's quiet. Come find me when it ain't.",

@@ -26,6 +26,15 @@ namespace BetterSpecialCustomers.Quests
         // True when he's out of the fight: dead or knocked out.
         public bool IsDown => IsDead || !IsConscious;
 
+        public bool IsFighting
+        {
+            get
+            {
+                var combat = QuestNpcUtil.FindGameNpc(NpcId)?.Behaviour?.CombatBehaviour;
+                return combat != null && combat.Active;
+            }
+        }
+
         // Below this rank they fight with knives, from it with guns (the same rule as the informant).
         private static readonly FullRank GunRank = new FullRank(Rank.Hustler, 3);
 

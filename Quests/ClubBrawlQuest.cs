@@ -17,13 +17,16 @@ namespace BetterSpecialCustomers.Quests
     // Diesel Rodd's second job: "Club Brawl". A rival club has gathered somewhere in town, and the player has to
     // take them all out. The shared rules (roll, start, reward, reset) are in JobController. The rivals themselves
     // are our own NPCs (see RivalBiker.cs); only the cartel's ambush SPOTS are borrowed.
+    //
+    // How it plays: when the job starts, the rivals gather at the spot (marked on the map) and hang around. When the
+    // player gets close, or picks a fight with any of them, the whole gang attacks.
 
     // What this run needs to remember. Saved with the game.
     public class BrawlRun
     {
         public int Region = -1;         // which region the rivals are in (-1 = not picked yet)
         public int LocationIndex = -1;  // which ambush spot in that region (-1 = not picked yet)
-        public bool Spawned;            // are the rivals out right now?
+        public bool Spawned;            // have the rivals gathered at the spot?
     }
 
     public class ClubBrawlQuestSave : Saveable
@@ -42,17 +45,22 @@ namespace BetterSpecialCustomers.Quests
         protected override void OnLoaded()
         {
             Instance = this;
-            // The rivals' fight isn't saved, so after a reload they need to come out again when the player comes back.
+            // The rivals aren't saved, so after a reload they gather at the spot again.
             if (Run.Spawned && !Data.TargetKilled) Run.Spawned = false;
         }
     }
 
     internal static class ClubBrawlTask
     {
+        // How close the player has to get before the gang attacks (or the spot's own radius, if that's bigger).
+        private const float AggroDistance = 15f;
+
         private static ClubBrawlQuestSave Save => ClubBrawlQuestSave.Instance;
 
-        // The rivals fighting in this brawl. Not saved (see ClubBrawlQuestSave.OnLoaded).
+        // The rivals at the spot this run, and whether they've started fighting. Not saved (see OnLoaded above).
         private static readonly List<RivalBiker> _rivals = new List<RivalBiker>();
+        private static bool _fighting;
+        private static CartelAmbushLocation _spot; // remembered, so we don't search for it every second
 
         // True while the job is open and the rivals haven't been beaten yet.
         private static bool IsRunning()
@@ -67,6 +75,13 @@ namespace BetterSpecialCustomers.Quests
             var save = Save;
             if (save == null || save.Run.Region < 0) return "town";
             return ((Region)save.Run.Region).ToString();
+        }
+
+        // Where the brawl is, for the quest marker. Vector3.zero if there's no spot yet.
+        public static Vector3 SpotPosition()
+        {
+            var spot = GetSpot();
+            return spot != null ? spot.transform.position : Vector3.zero;
         }
 
         // ---- Picking the spot ----
@@ -116,31 +131,38 @@ namespace BetterSpecialCustomers.Quests
             Melon<Core>.Logger.Warning("[quest] club brawl: no region has any ambush spots!");
         }
 
-        // Finds this run's ambush spot again from the saved region and index. Returns null if it can't.
-        private static CartelAmbushLocation FindSpot(BrawlRun run)
+        // This run's ambush spot, found once from the saved region and index. Null if it can't be found.
+        private static CartelAmbushLocation GetSpot()
         {
-            if (run.Region < 0 || run.LocationIndex < 0) return null;
+            if (_spot != null) return _spot;
+
+            var run = Save?.Run;
+            if (run == null || run.Region < 0 || run.LocationIndex < 0) return null;
             var spots = SpotsIn(run.Region);
             if (spots == null || run.LocationIndex >= spots.Length) return null;
-            return spots[run.LocationIndex];
+
+            _spot = spots[run.LocationIndex];
+            return _spot;
         }
 
-        // ---- The fight ----
+        // ---- The gang ----
 
-        // The first player within the spot's detection radius, or null if there isn't one.
-        private static S1API.Entities.Player PlayerInZone(CartelAmbushLocation spot)
+        // The player nearest to a position, or null if there are no players.
+        private static S1API.Entities.Player NearestPlayer(Vector3 position)
         {
-            Vector3 centre = spot.transform.position;
+            S1API.Entities.Player nearest = null;
+            float best = float.MaxValue;
             foreach (var player in S1API.Entities.Player.All)
             {
                 if (player == null) continue;
-                if (Vector3.Distance(player.Position, centre) <= spot.DetectionRadius) return player;
+                float distance = Vector3.Distance(player.Position, position);
+                if (distance < best) { best = distance; nearest = player; }
             }
-            return null;
+            return nearest;
         }
 
-        // Brings one rival to each ambush point and sends them all at the player who walked in.
-        private static void DeployRivals(CartelAmbushLocation spot, S1API.Entities.Player target, BrawlRun run)
+        // Brings one rival to each ambush point, where they hang around until provoked.
+        private static void GatherRivals(CartelAmbushLocation spot, BrawlRun run)
         {
             if (RivalBiker.All.Count == 0)
             {
@@ -156,12 +178,28 @@ namespace BetterSpecialCustomers.Quests
             {
                 var rival = RivalBiker.All[i];
                 rival.Deploy(points[i].position);
-                rival.Attack(target);
                 _rivals.Add(rival);
             }
 
+            _fighting = false;
             run.Spawned = true;
-            Melon<Core>.Logger.Msg($"[quest] club brawl: {_rivals.Count} rivals deployed");
+            Melon<Core>.Logger.Msg($"[quest] club brawl: {_rivals.Count} rivals gathered in {RegionName()}");
+        }
+
+        // Has the gang been provoked? The player came close, or picked a fight with (or knocked down) one of them.
+        private static bool IsProvoked(CartelAmbushLocation spot, out S1API.Entities.Player target)
+        {
+            Vector3 centre = spot.transform.position;
+            target = NearestPlayer(centre);
+            if (target == null) return false;
+
+            float aggroRange = Mathf.Max(AggroDistance, spot.DetectionRadius);
+            if (Vector3.Distance(target.Position, centre) <= aggroRange) return true;
+
+            foreach (var rival in _rivals)
+                if (rival.IsFighting || rival.IsDown) return true;
+
+            return false;
         }
 
         // Called about once a second from Core.OnUpdate (like HippiesTask.Tick).
@@ -171,23 +209,46 @@ namespace BetterSpecialCustomers.Quests
             {
                 if (!IsRunning()) return;
                 var run = Save.Run;
+                var spot = GetSpot();
+                if (spot == null) return;
 
-                // Waiting for the player to walk into the spot.
+                // 1. The job has started: the rivals gather at the spot.
                 if (!run.Spawned)
                 {
-                    var spot = FindSpot(run);
-                    if (spot == null) return;
-                    var target = PlayerInZone(spot);
-                    if (target != null) DeployRivals(spot, target, run);
+                    GatherRivals(spot, run);
                     return;
                 }
 
-                // The fight is on: once every rival is down, the job's done.
+                // 2. They hang around until provoked, then the whole gang attacks.
+                if (!_fighting)
+                {
+                    if (IsProvoked(spot, out var target))
+                    {
+                        _fighting = true;
+                        foreach (var rival in _rivals)
+                            if (!rival.IsDown) rival.Attack(target);
+                        Melon<Core>.Logger.Msg("[quest] club brawl: the rivals are attacking!");
+                    }
+                    return;
+                }
+
+                // 3. The fight is on: once every rival is down, the job's done.
+                foreach (var rival in _rivals)
+                {
+                    if (rival.IsDown || rival.IsFighting) continue; // already down, or already fighting
+                    var target = NearestPlayer(rival.Position);
+                    if (target == null) continue;
+                    rival.Attack(target);
+                    if (ModConfig.DebugMode.Value) Melon<Core>.Logger.Msg($"[quest] club brawl: sent {rival.FirstName} back into the fight");
+                }
+
+                // Once every rival is down, the job's done.
                 if (_rivals.Count > 0 && _rivals.TrueForAll(r => r.IsDown))
                 {
                     Melon<Core>.Logger.Msg("[quest] club brawl: all rivals are down");
                     ClubBrawlQuest.Job.OnObjectiveDone();
                 }
+            
             }
             catch (Exception ex)
             {
@@ -210,6 +271,8 @@ namespace BetterSpecialCustomers.Quests
                 // The job isn't running: put the rivals away and forget this run.
                 foreach (var rival in RivalBiker.All) rival.Park();
                 _rivals.Clear();
+                _fighting = false;
+                _spot = null;
                 save.Run = new BrawlRun();
             }
         }
@@ -236,14 +299,24 @@ namespace BetterSpecialCustomers.Quests
         {
             base.OnCreated();
             Job.Attach(this);
-            AddEntry($"Find the rival club in {ClubBrawlTask.RegionName()} and take them out");
+            var find = AddEntry($"Find the rival club in {ClubBrawlTask.RegionName()} and take them out");
             AddEntry("Tell Diesel the rivals are dealt with");
+            SetMarker(find);
         }
 
         protected override void OnLoaded()
         {
             base.OnLoaded();
             Job.Attach(this); // S1API only reloads quests that were still active
+            if (QuestEntries.Count > 0) SetMarker(QuestEntries[0]);
+        }
+
+        // Puts the quest marker (map and compass) on the brawl spot.
+        private static void SetMarker(QuestEntry entry)
+        {
+            Vector3 position = ClubBrawlTask.SpotPosition();
+            if (position != Vector3.zero) entry.POIPosition = position;
+            else Melon<Core>.Logger.Warning("[quest] club brawl: no spot found for the quest marker");
         }
     }
 }

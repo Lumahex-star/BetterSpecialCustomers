@@ -43,6 +43,7 @@ namespace BetterSpecialCustomers
                 _nextQuestTick = Time.unscaledTime + 1f;
                 BetterSpecialCustomers.Quests.HippiesTask.Tick();
                 BetterSpecialCustomers.Quests.Informant.Tick(); // puts the bikers' informant back in his hideout after a knock
+                BetterSpecialCustomers.Quests.ClubBrawlTask.Tick(); // gathers the rivals and runs the brawl
             }
         }
 
